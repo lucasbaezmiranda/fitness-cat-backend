@@ -1,3 +1,0 @@
-com.fitnesscat.stepstracker.test
-style WhiteBackgroundDialogTheme
-style WhiteBackgroundTheme

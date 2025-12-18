@@ -1,24 +1,96 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+############################
+# ANDROID / GRADLE
+############################
+.gradle/
+**/build/
+build/
+.externalNativeBuild/
+.cxx/
+captures/
+
+# APKs / AABs / Dalvik
+*.apk
+*.aab
+*.dex
+*.class
+
+# Local SDK / paths
 local.properties
 
-# AWS credentials (never commit these!)
+############################
+# ANDROID STUDIO / INTELLIJ
+############################
+.idea/
+*.iml
+out/
+
+# Archivos específicos de IDEA (redundancia OK)
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+############################
+# KOTLIN / JVM CACHES
+############################
+.kotlin/
+**/kotlin-classes/
+**/compileDebugKotlin/
+**/kotlin/
+
+############################
+# AWS / SECRETS
+############################
+# Nunca commitear credenciales reales
+.aws/
+aws/
+awscliv2.zip
+
+# Config real (solo templates sí)
 app/src/main/assets/aws_config.properties
 
-# Python virtual environment
+############################
+# PYTHON
+############################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Entornos virtuales
 venv/
 env/
 .venv/
 
+# Variables de entorno
+.env
+
+############################
+# BINARIOS / ARCHIVOS GRANDES
+############################
+*.zip
+*.tar
+*.tar.gz
+*.exe
+*.bin
+
+############################
+# SISTEMA OPERATIVO
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# EDITORES
+############################
+.vscode/
+
+############################
+# LOGS / TEMP
+############################
+*.log
+*.tmp
+*.swp
+*.bak
