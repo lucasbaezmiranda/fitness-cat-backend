@@ -1,0 +1,7 @@
+com.fitnesscat.stepstracker.test.app-jetified-annotation-experimental-1.3.0-0 /home/luke/.gradle/caches/8.13/transforms/5b2e258248a54048479252da34fa6931/transformed/jetified-annotation-experimental-1.3.0/res
+com.fitnesscat.stepstracker.test.app-jetified-core-1.5.0-1 /home/luke/.gradle/caches/8.13/transforms/d09d5f757708448a12de1435443cf5a3/transformed/jetified-core-1.5.0/res
+com.fitnesscat.stepstracker.test.app-androidTest-2 /home/luke/Desktop/repositorios/fitness-cat-backend/app/build/generated/res/resValues/androidTest/debug
+com.fitnesscat.stepstracker.test.app-updated_navigation_xml-3 /home/luke/Desktop/repositorios/fitness-cat-backend/app/build/generated/updated_navigation_xml/debugAndroidTest
+com.fitnesscat.stepstracker.test.app-mergeDebugAndroidTestResources-4 /home/luke/Desktop/repositorios/fitness-cat-backend/app/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/merged.dir
+com.fitnesscat.stepstracker.test.app-mergeDebugAndroidTestResources-5 /home/luke/Desktop/repositorios/fitness-cat-backend/app/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/stripped.dir
+com.fitnesscat.stepstracker.test.app-debugAndroidTest-6 /home/luke/Desktop/repositorios/fitness-cat-backend/app/build/intermediates/merged_res/debugAndroidTest/mergeDebugAndroidTestResources

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Fitness Cat - Step Tracker</string>
+    <string name="steps_label">Steps Today</string>
+    <string name="user_id_label">User ID</string>
+    <string name="last_sync_label">Last Synced</string>
+    <string name="sync_button">Sync to Cloud</string>
+    <string name="permission_required">Step tracking permission is required</string>
+    <string name="permission_denied">Permission denied. Please enable step tracking in settings.</string>
+</resources>
+

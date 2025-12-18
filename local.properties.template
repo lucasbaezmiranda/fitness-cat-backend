@@ -1,0 +1,9 @@
+# Android SDK location
+# Android Studio will create this automatically, but if you need to set it manually:
+# Uncomment and set your SDK path:
+# sdk.dir=/home/YOUR_USERNAME/Android/Sdk
+
+# Or find it in Android Studio:
+# File > Settings > Appearance & Behavior > System Settings > Android SDK
+# Copy the "Android SDK Location" path here
+
