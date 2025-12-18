@@ -58,3 +58,6 @@ deactivate
 The `requirements.txt` file includes:
 - `boto3` - AWS SDK for Python (used for DynamoDB operations)
 
+
+
+

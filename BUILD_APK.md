@@ -25,3 +25,6 @@ Once you have the APK:
 2. **On your phone**: Enable "Install from unknown sources" in Settings → Security
 3. **Tap the APK file** on your phone to install
 
+
+
+

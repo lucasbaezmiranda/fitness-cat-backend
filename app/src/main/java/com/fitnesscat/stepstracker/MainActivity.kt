@@ -16,8 +16,12 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var userPreferences: UserPreferences
     private lateinit var stepCounter: StepCounter
+    private lateinit var apiClient: ApiClient
     
     private val PERMISSION_REQUEST_CODE = 1001
+    
+    // Rate limiting: minimum time between syncs (5 minutes)
+    private val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         // Initialize helpers
         userPreferences = UserPreferences(this)
         stepCounter = StepCounter(this, userPreferences)
+        apiClient = ApiClient()
         
         // Load and display initial data (before permissions)
         loadInitialData()
@@ -158,12 +163,52 @@ class MainActivity : AppCompatActivity() {
         // Refresh step count from service (service updates UserPreferences)
         refreshStepCount()
         stepCounter.startListening()
+        
+        // Sync steps to API (with rate limiting)
+        syncStepsToAPI()
     }
     
     private fun refreshStepCount() {
         // Read current step count from preferences (updated by service)
         val currentSteps = userPreferences.getTotalStepCount()
         stepsText.text = currentSteps.toString()
+    }
+    
+    /**
+     * Syncs step count to API Gateway endpoint
+     * Includes rate limiting to prevent excessive API calls
+     */
+    private fun syncStepsToAPI() {
+        val lastSync = userPreferences.getLastSyncTimestamp()
+        val now = System.currentTimeMillis()
+        
+        // Check if enough time has passed since last sync
+        if (now - lastSync < MIN_SYNC_INTERVAL_MS) {
+            android.util.Log.d("MainActivity", "Skipping sync - too soon since last sync")
+            return
+        }
+        
+        // Get current data
+        val userId = userPreferences.getUserId()
+        val stepCount = userPreferences.getTotalStepCount()
+        val timestamp = now
+        
+        // Sync to API
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                if (success) {
+                    // Update last sync timestamp on success
+                    userPreferences.setLastSyncTimestamp(timestamp)
+                    android.util.Log.d("MainActivity", "Successfully synced $stepCount steps")
+                } else {
+                    // Log error but don't show to user (silent failure)
+                    android.util.Log.e("MainActivity", "Failed to sync steps: $errorMessage")
+                }
+            }
+        )
     }
 
     override fun onPause() {

@@ -113,3 +113,6 @@ fitness-cat-backend/
 2. **App icons** (Android Studio will generate these automatically)
 3. **Gradle wrapper** (Android Studio generates this automatically)
 
+
+
+

@@ -75,3 +75,6 @@ Or manually create the table in AWS Console:
 - Explore the Kotlin code to understand Android development
 - Customize the UI or add features like step history graphs
 
+
+
+

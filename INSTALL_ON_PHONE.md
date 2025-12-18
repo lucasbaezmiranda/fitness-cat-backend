@@ -99,3 +99,6 @@ After installation, the app should:
 
 Try walking around and opening the app again - the step count should update!
 
+
+
+

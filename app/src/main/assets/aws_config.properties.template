@@ -9,3 +9,6 @@ aws_secret_access_key=YOUR_SECRET_ACCESS_KEY
 # AWS Region (e.g., us-east-1, us-west-2, eu-west-1)
 aws_region=us-east-1
 
+
+
+
