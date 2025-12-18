@@ -1,5 +1,5 @@
 # AWS data writing strategy
-_Exported on 12/18/2025 at 09:03:56 GMT-3 from Cursor (2.2.27)_
+_Exported on 12/18/2025 at 10:41:19 GMT-3 from Cursor (2.2.27)_
 
 ---
 
@@ -14136,9 +14136,7 @@ in which files are like... the main parts? I mean i dont wanna know low level ko
 
 **Cursor**
 
-
 Explorando la estructura del proyecto para darte una visión general:
-
 
 
 ## THE FOREST: High-Level Architecture
@@ -14470,5 +14468,4 @@ value ?: "default"  // Elvis operator (like: value || "default")
 data class User(val id: String, val steps: Int)
 // Like: @dataclass in Python
 ```
-
 

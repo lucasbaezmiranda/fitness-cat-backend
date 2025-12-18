@@ -133,3 +133,4 @@ If you need to rebuild:
 4. **Verify permissions**: Make sure all required permissions are in AndroidManifest.xml
 
 
+
