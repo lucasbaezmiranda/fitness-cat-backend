@@ -1,10 +1,16 @@
 package com.fitnesscat.stepstracker
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +19,8 @@ import androidx.core.content.ContextCompat
 class MainActivity : AppCompatActivity() {
     
     private lateinit var stepsText: TextView
+    private lateinit var syncButton: Button
+    private lateinit var debugStatusText: TextView
     
     private lateinit var userPreferences: UserPreferences
     private lateinit var stepCounter: StepCounter
@@ -22,6 +30,15 @@ class MainActivity : AppCompatActivity() {
     
     // Rate limiting: minimum time between syncs (5 minutes)
     private val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L
+    
+    // Handlers for periodic updates
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var stepUpdateRunnable: Runnable? = null
+    private var hourlySyncRunnable: Runnable? = null
+    
+    // Update intervals
+    private val STEP_UPDATE_INTERVAL_MS = 2000L // Update step count every 2 seconds
+    private val HOURLY_SYNC_INTERVAL_MS = 60 * 60 * 1000L // Sync every 1 hour
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +46,13 @@ class MainActivity : AppCompatActivity() {
         
         // Initialize views
         stepsText = findViewById(R.id.stepsText)
+        syncButton = findViewById(R.id.syncButton)
+        debugStatusText = findViewById(R.id.debugStatusText)
+        
+        // Set up sync button click listener
+        syncButton.setOnClickListener {
+            forceSyncToAPI()
+        }
         
         // Initialize helpers
         userPreferences = UserPreferences(this)
@@ -98,12 +122,14 @@ class MainActivity : AppCompatActivity() {
             if (allGranted) {
                 setupStepCounter()
                 startStepTrackingService()
+                updateDebugStatus()
             } else {
                 Toast.makeText(
                     this,
                     getString(R.string.permission_denied),
                     Toast.LENGTH_LONG
                 ).show()
+                updateDebugStatus()
             }
         }
     }
@@ -122,19 +148,19 @@ class MainActivity : AppCompatActivity() {
             
             if (!hasActivityRecognition) {
                 // Permission not granted, don't start service
+                android.util.Log.w("MainActivity", "Activity Recognition permission not granted - cannot start service")
                 return
             }
             
+            android.util.Log.d("MainActivity", "Starting StepTrackingService...")
             val serviceIntent = Intent(this, StepTrackingService::class.java)
             
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
+            // Use regular startService since we're not using foreground service anymore
+            startService(serviceIntent)
+            android.util.Log.d("MainActivity", "Started service")
         } catch (e: SecurityException) {
             // Permission denied or service type not allowed
-            android.util.Log.e("MainActivity", "Failed to start service: ${e.message}")
+            android.util.Log.e("MainActivity", "Failed to start service: ${e.message}", e)
             Toast.makeText(this, "Cannot start step tracking: ${e.message}", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             // Other errors
@@ -144,34 +170,249 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupStepCounter() {
-        stepCounter.onStepCountChanged = { count ->
-            runOnUiThread {
-                stepsText.text = count.toString()
-            }
-        }
-        
-        stepCounter.startListening()
+        // Don't start StepCounter listener - the service handles tracking
+        // Just set up UI update callback for when service updates steps
+        // The service updates UserPreferences, so we'll refresh from there
+        android.util.Log.d("MainActivity", "StepCounter setup - service will handle tracking")
     }
 
     private fun loadInitialData() {
         // Display current step count from preferences (service updates this)
+        android.util.Log.d("MainActivity", "Loading initial data...")
+        val userId = userPreferences.getUserId()
+        val currentSteps = userPreferences.getTotalStepCount()
+        val lastSensorValue = userPreferences.getLastSensorValue()
+        android.util.Log.d("MainActivity", "User ID: $userId")
+        android.util.Log.d("MainActivity", "Current step count: $currentSteps")
+        android.util.Log.d("MainActivity", "Last sensor value: $lastSensorValue")
         refreshStepCount()
     }
 
     override fun onResume() {
         super.onResume()
-        // Refresh step count from service (service updates UserPreferences)
-        refreshStepCount()
-        stepCounter.startListening()
+        android.util.Log.d("MainActivity", "onResume() - refreshing step count and checking service")
         
-        // Sync steps to API (with rate limiting)
-        syncStepsToAPI()
+        // Always try to start service (in case it stopped)
+        startStepTrackingService()
+        
+        // Refresh step count immediately
+        refreshStepCount()
+        
+        // Wait a bit for sensor to fire initial event, then refresh again
+        mainHandler.postDelayed({
+            refreshStepCount()
+            android.util.Log.d("MainActivity", "Refreshed step count after sensor initialization")
+        }, 500)
+        
+        // Start periodic step count updates (every 2 seconds)
+        startStepCountUpdates()
+        
+        // Start hourly automatic sync (only while app is open)
+        startHourlySync()
+        
+        // Update debug status periodically
+        updateDebugStatus()
+    }
+    
+    /**
+     * Starts periodic step count updates while app is in foreground
+     */
+    private fun startStepCountUpdates() {
+        // Cancel any existing update runnable
+        stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
+        
+        // Create new runnable that updates steps and schedules itself again
+        stepUpdateRunnable = object : Runnable {
+            override fun run() {
+                refreshStepCount()
+                updateDebugStatus()
+                // Schedule next update
+                stepUpdateRunnable?.let { mainHandler.postDelayed(it, STEP_UPDATE_INTERVAL_MS) }
+            }
+        }
+        
+        // Start the periodic updates
+        stepUpdateRunnable?.let { mainHandler.postDelayed(it, STEP_UPDATE_INTERVAL_MS) }
+        android.util.Log.d("MainActivity", "Started periodic step count updates (every ${STEP_UPDATE_INTERVAL_MS}ms)")
+    }
+    
+    /**
+     * Starts hourly automatic sync to API (only while app is open)
+     */
+    private fun startHourlySync() {
+        // Cancel any existing sync runnable
+        hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
+        
+        // Create new runnable that syncs and schedules itself again
+        hourlySyncRunnable = object : Runnable {
+            override fun run() {
+                android.util.Log.d("MainActivity", "Hourly sync triggered")
+                syncStepsToAPI()
+                // Schedule next hourly sync (only if app is still active)
+                hourlySyncRunnable?.let { mainHandler.postDelayed(it, HOURLY_SYNC_INTERVAL_MS) }
+            }
+        }
+        
+        // Start the hourly sync (only runs while app is open)
+        hourlySyncRunnable?.let { mainHandler.postDelayed(it, HOURLY_SYNC_INTERVAL_MS) }
+        android.util.Log.d("MainActivity", "Started hourly automatic sync (every ${HOURLY_SYNC_INTERVAL_MS}ms) - only while app is open")
+    }
+    
+    /**
+     * Syncs steps to API when app resumes (no rate limiting)
+     */
+    private fun syncStepsToAPIOnResume() {
+        android.util.Log.d("MainActivity", "Syncing steps on app resume (no rate limit)")
+        
+        // Get current data
+        val userId = userPreferences.getUserId()
+        val stepCount = userPreferences.getTotalStepCount()
+        val timestamp = System.currentTimeMillis()
+        
+        // Sync to API (bypass rate limiting)
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                if (success) {
+                    // Update last sync timestamp on success
+                    userPreferences.setLastSyncTimestamp(timestamp)
+                    android.util.Log.d("MainActivity", "Successfully synced $stepCount steps on resume")
+                } else {
+                    // Log error but don't show to user (silent failure)
+                    android.util.Log.e("MainActivity", "Failed to sync steps on resume: $errorMessage")
+                }
+            }
+        )
     }
     
     private fun refreshStepCount() {
         // Read current step count from preferences (updated by service)
         val currentSteps = userPreferences.getTotalStepCount()
+        val lastSensorValue = userPreferences.getLastSensorValue()
         stepsText.text = currentSteps.toString()
+        android.util.Log.d("MainActivity", "Refreshed step count: $currentSteps (lastSensorValue: $lastSensorValue)")
+        
+        // Update debug status
+        updateDebugStatus()
+    }
+    
+    private fun updateDebugStatus() {
+        val statusMessages = mutableListOf<String>()
+        
+        // Check permission
+        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        
+        if (hasPermission) {
+            statusMessages.add("✓ Permission: Granted")
+        } else {
+            statusMessages.add("✗ Permission: DENIED")
+        }
+        
+        // Check sensor availability
+        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+        
+        if (stepCounterSensor != null) {
+            statusMessages.add("✓ Sensor: Available")
+        } else {
+            statusMessages.add("✗ Sensor: NOT AVAILABLE")
+        }
+        
+        // Check service status (check if notification exists)
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val activeNotifications = notificationManager.activeNotifications
+        val serviceRunningByNotification = activeNotifications.any { 
+            it.id == 1 && it.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.contains("Step Tracker") == true
+        }
+        
+        // Also check if service is actually running
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
+        val serviceActuallyRunning = runningServices.any { 
+            it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
+        }
+        
+        val serviceRunning = serviceRunningByNotification || serviceActuallyRunning
+        
+        if (serviceRunning) {
+            statusMessages.add("✓ Service: Running")
+        } else {
+            statusMessages.add("✗ Service: NOT RUNNING")
+            // Try to start it
+            startStepTrackingService()
+        }
+        
+        // Show step count info
+        val currentSteps = userPreferences.getTotalStepCount()
+        val lastSensorValue = userPreferences.getLastSensorValue()
+        statusMessages.add("Steps: $currentSteps")
+        statusMessages.add("Last Sensor: $lastSensorValue")
+        
+        // Update UI
+        debugStatusText.text = statusMessages.joinToString("\n")
+        
+        // Color code based on status
+        if (!hasPermission || stepCounterSensor == null || !serviceRunning) {
+            debugStatusText.setTextColor(0xFFFF0000.toInt()) // Red
+        } else if (lastSensorValue == 0f) {
+            debugStatusText.setTextColor(0xFFFF8800.toInt()) // Orange - waiting for sensor
+        } else {
+            debugStatusText.setTextColor(0xFF00AA00.toInt()) // Green - all good
+        }
+    }
+    
+    /**
+     * Forces a sync to API Gateway endpoint (bypasses rate limiting)
+     * Used for manual testing via button click
+     */
+    private fun forceSyncToAPI() {
+        android.util.Log.d("MainActivity", "Manual sync triggered by button")
+        
+        // Get current data
+        val userId = userPreferences.getUserId()
+        val stepCount = userPreferences.getTotalStepCount()
+        val timestamp = System.currentTimeMillis()
+        
+        // Show loading toast
+        Toast.makeText(this, "Syncing to API...", Toast.LENGTH_SHORT).show()
+        
+        // Sync to API (bypass rate limiting)
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                runOnUiThread {
+                    if (success) {
+                        // Update last sync timestamp on success
+                        userPreferences.setLastSyncTimestamp(timestamp)
+                        android.util.Log.d("MainActivity", "✓ Successfully synced $stepCount steps to API")
+                        Toast.makeText(
+                            this,
+                            "✓ Synced successfully!\nSteps: $stepCount\nUser: ${userId.take(8)}...",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        // Show error to user
+                        android.util.Log.e("MainActivity", "✗ Failed to sync steps: $errorMessage")
+                        Toast.makeText(
+                            this,
+                            "✗ Sync failed: $errorMessage",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        )
     }
     
     /**
@@ -213,14 +454,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Don't stop listening - service handles background tracking
-        // Just refresh display when we come back
+        // Stop periodic UI updates when app goes to background
+        stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
+        // Stop hourly sync when app goes to background (service continues counting steps)
+        hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
+        android.util.Log.d("MainActivity", "Stopped UI updates and hourly sync (app paused)")
+        
+        // Sync steps to API when app closes (no rate limiting)
+        android.util.Log.d("MainActivity", "Syncing steps before app closes")
+        syncStepsToAPIOnResume()
+        
+        android.util.Log.d("MainActivity", "Service continues running in background to count steps")
+        // Service continues running in background to track steps
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Service continues running in background
-        // No need to stop stepCounter here
+        // Clean up handlers
+        stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
+        hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
+        android.util.Log.d("MainActivity", "Cleaned up handlers (app destroyed)")
+        // Service continues running in background to track steps
     }
 }
 
