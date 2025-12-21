@@ -8,8 +8,7 @@ build/
 .cxx/
 captures/
 
-# APKs / AABs / Dalvik
-*.apk
+/ AABs / Dalvik
 *.aab
 *.dex
 *.class
