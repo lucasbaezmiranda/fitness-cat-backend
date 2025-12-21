@@ -14,8 +14,6 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.os.IBinder
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -33,8 +31,6 @@ class StepTrackingService : Service(), SensorEventListener {
     
     private var lastSensorValue: Float = 0f
     private var totalStepCount: Int = 0
-    private var sensorReadTimeout: Handler? = null
-    private val sensorReadTimeoutDelay = 3000L // Wait 3 seconds for sensor to fire
     
     override fun onCreate() {
         super.onCreate()
@@ -48,9 +44,28 @@ class StepTrackingService : Service(), SensorEventListener {
             totalStepCount = userPreferences.getTotalStepCount()
             lastSensorValue = userPreferences.getLastSensorValue()
             
-            // Don't use foreground service - no notification needed
-            // We'll just read the sensor value once and stop
-            android.util.Log.d("StepTrackingService", "Service started - will read sensor and stop")
+            // Create notification channel for Android O+
+            createNotificationChannel()
+            
+            // Start as foreground service with health type
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // Android 14+ requires explicit service type
+                    startForeground(NOTIFICATION_ID, createNotification(), 
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+                } else {
+                    // Older versions
+                    startForeground(NOTIFICATION_ID, createNotification())
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("StepTrackingService", "Failed to start foreground: ${e.message}", e)
+                // Try without service type for older versions
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(NOTIFICATION_ID, createNotification())
+                } else {
+                    throw e
+                }
+            }
             
             // Check permission before accessing sensor
             val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -62,44 +77,37 @@ class StepTrackingService : Service(), SensorEventListener {
                 true // Permission not needed on older versions
             }
             
-            // Read sensor value once and update steps
+            // Start listening to sensor (only if sensor is available and permission granted)
             if (hasPermission && stepCounterSensor != null) {
-                android.util.Log.d("StepTrackingService", "Reading sensor - permission: granted, sensor: available")
+                android.util.Log.d("StepTrackingService", "Starting step tracking - permission: granted, sensor: available")
                 android.util.Log.d("StepTrackingService", "Current state - totalSteps: $totalStepCount, lastSensorValue: $lastSensorValue")
-                
-                // Register listener to get current sensor value
                 startStepTracking()
-                
-                // Set timeout to stop service if sensor doesn't fire within 3 seconds
-                sensorReadTimeout = Handler(Looper.getMainLooper())
-                sensorReadTimeout?.postDelayed({
-                    android.util.Log.w("StepTrackingService", "Sensor read timeout - stopping service")
-                    stopSelf()
-                }, sensorReadTimeoutDelay)
-                
-                // Stop service after reading (sensor will fire once with current value)
-                // We'll stop in onSensorChanged after processing
             } else {
                 if (!hasPermission) {
-                    android.util.Log.w("StepTrackingService", "Activity Recognition permission not granted")
+                    android.util.Log.w("StepTrackingService", "Activity Recognition permission not granted - stopping service")
+                    // Stop service if permission not granted
+                    stopSelf()
+                    return
                 }
                 if (stepCounterSensor == null) {
-                    android.util.Log.w("StepTrackingService", "Step counter sensor not available")
+                    android.util.Log.w("StepTrackingService", "Step counter sensor not available - stopping service")
+                    // List all available sensors for debugging
                     val sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL)
                     android.util.Log.d("StepTrackingService", "Available sensors: ${sensorList.map { "${it.name} (type=${it.type})" }}")
+                    stopSelf()
+                    return
                 }
-                // Stop service if sensor/permission not available
-                stopSelf()
             }
         } catch (e: Exception) {
             android.util.Log.e("StepTrackingService", "Error in onCreate: ${e.message}", e)
-            // Don't stop service on error - let it try to continue
+            // Stop the service if initialization fails
+            stopSelf()
         }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Don't restart - we only need to read sensor once
-        return START_NOT_STICKY
+        // Restart service if killed
+        return START_STICKY
     }
     
     override fun onBind(intent: Intent?): IBinder? = null
@@ -148,53 +156,33 @@ class StepTrackingService : Service(), SensorEventListener {
             stepCounterSensor?.let { sensor ->
                 // Use SENSOR_DELAY_NORMAL for better responsiveness
                 // TYPE_STEP_COUNTER only fires when steps change, so delay doesn't matter much
-                android.util.Log.d("StepTrackingService", "Attempting to register sensor listener...")
-                android.util.Log.d("StepTrackingService", "Sensor details:")
-                android.util.Log.d("StepTrackingService", "  - Name: ${sensor.name}")
-                android.util.Log.d("StepTrackingService", "  - Vendor: ${sensor.vendor}")
-                android.util.Log.d("StepTrackingService", "  - Type: ${sensor.type} (TYPE_STEP_COUNTER=${Sensor.TYPE_STEP_COUNTER})")
-                android.util.Log.d("StepTrackingService", "  - Max Range: ${sensor.maximumRange}")
-                android.util.Log.d("StepTrackingService", "  - Resolution: ${sensor.resolution}")
-                android.util.Log.d("StepTrackingService", "  - Power: ${sensor.power}mA")
-                
                 val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
                 if (registered) {
-                    android.util.Log.d("StepTrackingService", "✓ Successfully registered step counter sensor listener")
-                    android.util.Log.d("StepTrackingService", "Waiting for sensor events... (sensor will fire when steps change)")
-                    android.util.Log.d("StepTrackingService", "Current state: totalSteps=$totalStepCount, lastSensorValue=$lastSensorValue")
+                    android.util.Log.d("StepTrackingService", "Successfully registered step counter sensor listener")
+                    android.util.Log.d("StepTrackingService", "Sensor name: ${sensor.name}, vendor: ${sensor.vendor}, maxRange: ${sensor.maximumRange}")
+                    android.util.Log.d("StepTrackingService", "Sensor resolution: ${sensor.resolution}, power: ${sensor.power}mA")
                 } else {
-                    android.util.Log.e("StepTrackingService", "✗ Failed to register sensor listener - registerListener returned false")
+                    android.util.Log.e("StepTrackingService", "Failed to register sensor listener")
                 }
             } ?: run {
-                android.util.Log.e("StepTrackingService", "✗ Step counter sensor is null - device may not have step counter hardware")
+                android.util.Log.w("StepTrackingService", "Step counter sensor is null")
             }
-        } catch (e: SecurityException) {
-            android.util.Log.e("StepTrackingService", "✗ SecurityException registering sensor: ${e.message}", e)
         } catch (e: Exception) {
-            android.util.Log.e("StepTrackingService", "✗ Error starting step tracking: ${e.message}", e)
+            android.util.Log.e("StepTrackingService", "Error starting step tracking: ${e.message}", e)
         }
     }
     
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
             val currentSensorValue = event.values[0]
-            android.util.Log.d("StepTrackingService", "=== SENSOR EVENT ===")
-            android.util.Log.d("StepTrackingService", "Current sensor value: $currentSensorValue")
-            android.util.Log.d("StepTrackingService", "Last sensor value: $lastSensorValue")
-            android.util.Log.d("StepTrackingService", "Total step count: $totalStepCount")
-            
-            // Cancel timeout since sensor fired
-            sensorReadTimeout?.removeCallbacksAndMessages(null)
+            android.util.Log.d("StepTrackingService", "Sensor event received: currentValue=$currentSensorValue, lastValue=$lastSensorValue, totalSteps=$totalStepCount")
             
             // First reading - just store baseline
             if (lastSensorValue == 0f) {
                 android.util.Log.d("StepTrackingService", "First sensor reading - storing baseline: $currentSensorValue")
-                android.util.Log.d("StepTrackingService", "Note: Steps already taken since boot ($currentSensorValue) will not be counted")
-                android.util.Log.d("StepTrackingService", "Only new steps after this point will be tracked")
                 lastSensorValue = currentSensorValue
                 userPreferences.setLastSensorValue(lastSensorValue)
-                // Stop service after reading
-                stopSelfSafely()
+                updateNotification()
                 return
             }
             
@@ -209,8 +197,7 @@ class StepTrackingService : Service(), SensorEventListener {
                 }
                 lastSensorValue = currentSensorValue
                 userPreferences.setLastSensorValue(lastSensorValue)
-                // Stop service after updating
-                stopSelfSafely()
+                updateNotification()
                 return
             }
             
@@ -226,16 +213,12 @@ class StepTrackingService : Service(), SensorEventListener {
                 userPreferences.setTotalStepCount(totalStepCount)
                 userPreferences.setLastSensorValue(lastSensorValue)
                 
-                android.util.Log.d("StepTrackingService", "✓ Added $stepsSinceLastReading new steps!")
-                android.util.Log.d("StepTrackingService", "✓ New total: $totalStepCount steps")
+                android.util.Log.d("StepTrackingService", "Updated step count: +$stepsSinceLastReading steps. New total: $totalStepCount")
                 
-                // Stop service after updating - we only needed to read once
-                stopSelfSafely()
-            } else if (stepsSinceLastReading == 0) {
-                android.util.Log.d("StepTrackingService", "No new steps detected (sensor value unchanged)")
+                // Update notification
+                updateNotification()
             } else {
-                android.util.Log.w("StepTrackingService", "WARNING: Negative step difference! This shouldn't happen unless sensor reset.")
-                android.util.Log.w("StepTrackingService", "currentValue=$currentSensorValue, lastValue=$lastSensorValue")
+                android.util.Log.d("StepTrackingService", "No new steps detected (stepsSinceLastReading=$stepsSinceLastReading)")
             }
         } else {
             android.util.Log.w("StepTrackingService", "Received sensor event for wrong sensor type: ${event?.sensor?.type}")
@@ -246,31 +229,9 @@ class StepTrackingService : Service(), SensorEventListener {
         // Not needed
     }
     
-    /**
-     * Safely stops the service after unregistering sensor listener
-     */
-    private fun stopSelfSafely() {
-        try {
-            sensorManager.unregisterListener(this)
-            android.util.Log.d("StepTrackingService", "Unregistered sensor listener")
-        } catch (e: Exception) {
-            android.util.Log.e("StepTrackingService", "Error unregistering sensor: ${e.message}", e)
-        }
-        // Cancel timeout if still pending
-        sensorReadTimeout?.removeCallbacksAndMessages(null)
-        // Stop the service
-        stopSelf()
-    }
-    
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            sensorManager.unregisterListener(this)
-        } catch (e: Exception) {
-            android.util.Log.e("StepTrackingService", "Error in onDestroy unregistering sensor: ${e.message}", e)
-        }
-        // Cancel timeout
-        sensorReadTimeout?.removeCallbacksAndMessages(null)
+        sensorManager.unregisterListener(this)
         // Save final state
         userPreferences.setTotalStepCount(totalStepCount)
         userPreferences.setLastSensorValue(lastSensorValue)

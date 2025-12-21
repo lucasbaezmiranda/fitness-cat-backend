@@ -16,11 +16,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import org.json.JSONArray
-import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
     
     private lateinit var stepsText: TextView
@@ -33,9 +28,6 @@ class MainActivity : AppCompatActivity() {
     
     private val PERMISSION_REQUEST_CODE = 1001
     
-    // Rate limiting: minimum time between syncs (5 minutes)
-    private val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L
-    
     // Handlers for periodic updates
     private val mainHandler = Handler(Looper.getMainLooper())
     private var stepUpdateRunnable: Runnable? = null
@@ -43,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     
     // Update intervals
     private val STEP_UPDATE_INTERVAL_MS = 2000L // Update step count every 2 seconds
-    private val BATCH_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000L // Batch sync every 2 hours
+    private val HOURLY_SYNC_INTERVAL_MS = 60 * 60 * 1000L // Sync every 1 hour
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,32 +56,11 @@ class MainActivity : AppCompatActivity() {
         stepCounter = StepCounter(this, userPreferences)
         apiClient = ApiClient()
         
-        // Schedule WorkManager for periodic step reading (every 15 minutes)
-        schedulePeriodicStepReading()
-        
         // Load and display initial data (before permissions)
         loadInitialData()
         
         // Request permissions FIRST, then setup
         requestPermissions()
-    }
-    
-    /**
-     * Schedules WorkManager to read steps every 30 minutes
-     * This runs in background without notification - most efficient solution
-     */
-    private fun schedulePeriodicStepReading() {
-        val workRequest = PeriodicWorkRequestBuilder<StepWorker>(
-            30, TimeUnit.MINUTES  // Every 30 minutes for optimal battery usage
-        ).build()
-        
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "StepReadingWork",
-            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
-        
-        android.util.Log.d("MainActivity", "Scheduled periodic step reading every 30 minutes")
     }
 
     private fun requestPermissions() {
@@ -230,14 +201,11 @@ class MainActivity : AppCompatActivity() {
             android.util.Log.d("MainActivity", "Refreshed step count after sensor initialization")
         }, 500)
         
-        // Send pending batch records to API
-        syncPendingBatchRecords()
-        
         // Start periodic step count updates (every 2 seconds)
         startStepCountUpdates()
         
-        // Start batch sync timer (every 2 hours while app is open)
-        startBatchSyncTimer()
+        // Start hourly automatic sync (only while app is open)
+        startHourlySync()
         
         // Update debug status periodically
         updateDebugStatus()
@@ -266,95 +234,58 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
-     * Starts batch sync timer (every 2 hours while app is open)
+     * Starts hourly automatic sync to API (only while app is open)
      */
-    private fun startBatchSyncTimer() {
+    private fun startHourlySync() {
         // Cancel any existing sync runnable
         hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
         
-        // Create new runnable that syncs batch and schedules itself again
+        // Create new runnable that syncs and schedules itself again
         hourlySyncRunnable = object : Runnable {
             override fun run() {
-                android.util.Log.d("MainActivity", "Batch sync timer triggered (every 2 hours)")
-                syncPendingBatchRecords()
-                // Schedule next batch sync (only if app is still active)
-                hourlySyncRunnable?.let { mainHandler.postDelayed(it, BATCH_SYNC_INTERVAL_MS) }
+                android.util.Log.d("MainActivity", "Hourly sync triggered")
+                syncStepsToAPI()
+                // Schedule next hourly sync (only if app is still active)
+                hourlySyncRunnable?.let { mainHandler.postDelayed(it, HOURLY_SYNC_INTERVAL_MS) }
             }
         }
         
-        // Start the batch sync timer (only runs while app is open)
-        hourlySyncRunnable?.let { mainHandler.postDelayed(it, BATCH_SYNC_INTERVAL_MS) }
-        android.util.Log.d("MainActivity", "Started batch sync timer (every ${BATCH_SYNC_INTERVAL_MS}ms) - only while app is open")
+        // Start the hourly sync (only runs while app is open)
+        hourlySyncRunnable?.let { mainHandler.postDelayed(it, HOURLY_SYNC_INTERVAL_MS) }
+        android.util.Log.d("MainActivity", "Started hourly automatic sync (every ${HOURLY_SYNC_INTERVAL_MS}ms) - only while app is open")
     }
     
     /**
-     * Syncs all pending step records in batch to API
-     * Called when app opens and every 2 hours
+     * Syncs steps to API when app closes (no rate limiting)
+     * Uses runOnUiThread for callback to ensure proper thread handling
      */
-    private fun syncPendingBatchRecords() {
-        try {
-            val pendingJson = userPreferences.getPendingStepRecords()
-            
-            if (pendingJson.isEmpty() || pendingJson == "[]") {
-                android.util.Log.d("MainActivity", "No pending records to sync")
-                return
-            }
-            
-            val records = JSONArray(pendingJson)
-            val userId = userPreferences.getUserId()
-            
-            if (records.length() == 0) {
-                android.util.Log.d("MainActivity", "No pending records to sync")
-                return
-            }
-            
-            android.util.Log.d("MainActivity", "Syncing ${records.length()} pending records in batch")
-            
-            // Send each record to API
-            var successCount = 0
-            var failCount = 0
-            
-            for (i in 0 until records.length()) {
-                val record = records.getJSONObject(i)
-                val steps = record.optInt("steps_at_time", 0)
-                val timestamp = record.optLong("timestamp", 0)
-                
-                // Convert timestamp from seconds to milliseconds for API
-                val timestampMs = timestamp * 1000
-                
-                // Sync each record individually
-                apiClient.syncSteps(
-                    userId = userId,
-                    stepCount = steps,
-                    timestamp = timestampMs,
-                    callback = { success, errorMessage ->
-                        if (success) {
-                            successCount++
-                        } else {
-                            failCount++
-                            android.util.Log.e("MainActivity", "Failed to sync record: $errorMessage")
-                        }
-                        
-                        // If this is the last record, clear pending if all succeeded
-                        if (successCount + failCount == records.length()) {
-                            if (failCount == 0) {
-                                // All succeeded - clear pending records
-                                userPreferences.clearPendingStepRecords()
-                                android.util.Log.d("MainActivity", "✓ All ${successCount} records synced successfully")
-                            } else {
-                                // Some failed - keep failed ones (simple approach: keep all for retry)
-                                android.util.Log.w("MainActivity", "Some records failed: $successCount succeeded, $failCount failed")
-                            }
-                        }
+    private fun syncStepsToAPIOnResume() {
+        android.util.Log.d("MainActivity", "Syncing steps before app closes")
+        
+        // Get current data
+        val userId = userPreferences.getUserId()
+        val stepCount = userPreferences.getTotalStepCount()
+        val timestamp = System.currentTimeMillis()
+        
+        // Sync to API (no rate limiting)
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                runOnUiThread {
+                    if (success) {
+                        // Update last sync timestamp on success
+                        userPreferences.setLastSyncTimestamp(timestamp)
+                        android.util.Log.d("MainActivity", "✓ Successfully synced $stepCount steps on app close")
+                    } else {
+                        // Log error (user won't see it if app is closing, but helps debugging)
+                        android.util.Log.e("MainActivity", "✗ Failed to sync steps on app close: $errorMessage")
                     }
-                )
+                }
             }
-            
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error syncing batch records: ${e.message}", e)
-        }
+        )
     }
-    
     
     private fun refreshStepCount() {
         // Read current step count from preferences (updated by service)
@@ -486,22 +417,15 @@ class MainActivity : AppCompatActivity() {
     
     /**
      * Syncs step count to API Gateway endpoint
-     * Includes rate limiting to prevent excessive API calls
+     * Rate limiting removed - hourly timer already controls frequency
      */
     private fun syncStepsToAPI() {
-        val lastSync = userPreferences.getLastSyncTimestamp()
-        val now = System.currentTimeMillis()
-        
-        // Check if enough time has passed since last sync
-        if (now - lastSync < MIN_SYNC_INTERVAL_MS) {
-            android.util.Log.d("MainActivity", "Skipping sync - too soon since last sync")
-            return
-        }
+        android.util.Log.d("MainActivity", "Automatic sync triggered (hourly)")
         
         // Get current data
         val userId = userPreferences.getUserId()
         val stepCount = userPreferences.getTotalStepCount()
-        val timestamp = now
+        val timestamp = System.currentTimeMillis()
         
         // Sync to API
         apiClient.syncSteps(
@@ -509,13 +433,20 @@ class MainActivity : AppCompatActivity() {
             stepCount = stepCount,
             timestamp = timestamp,
             callback = { success, errorMessage ->
-                if (success) {
-                    // Update last sync timestamp on success
-                    userPreferences.setLastSyncTimestamp(timestamp)
-                    android.util.Log.d("MainActivity", "Successfully synced $stepCount steps")
-                } else {
-                    // Log error but don't show to user (silent failure)
-                    android.util.Log.e("MainActivity", "Failed to sync steps: $errorMessage")
+                runOnUiThread {
+                    if (success) {
+                        // Update last sync timestamp on success
+                        userPreferences.setLastSyncTimestamp(timestamp)
+                        android.util.Log.d("MainActivity", "✓ Successfully synced $stepCount steps (automatic)")
+                    } else {
+                        // Show error to user so they know sync failed
+                        android.util.Log.e("MainActivity", "✗ Failed to sync steps (automatic): $errorMessage")
+                        Toast.makeText(
+                            this,
+                            "Auto-sync failed: ${errorMessage?.take(50) ?: "Unknown error"}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         )
@@ -529,12 +460,16 @@ class MainActivity : AppCompatActivity() {
         hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
         android.util.Log.d("MainActivity", "Stopped UI updates and hourly sync (app paused)")
         
-        // Sync pending batch records when app closes
-        android.util.Log.d("MainActivity", "Syncing pending batch records before app closes")
-        syncPendingBatchRecords()
-        
         android.util.Log.d("MainActivity", "Service continues running in background to count steps")
         // Service continues running in background to track steps
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        // Sync steps to API when app goes to background
+        // onStop() is called later than onPause(), giving more time for sync to complete
+        android.util.Log.d("MainActivity", "App stopped - syncing steps before background")
+        syncStepsToAPIOnResume()
     }
 
     override fun onDestroy() {
