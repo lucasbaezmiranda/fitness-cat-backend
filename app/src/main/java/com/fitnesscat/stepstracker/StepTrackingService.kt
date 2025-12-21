@@ -154,13 +154,14 @@ class StepTrackingService : Service(), SensorEventListener {
     private fun startStepTracking() {
         try {
             stepCounterSensor?.let { sensor ->
-                // Use SENSOR_DELAY_NORMAL for better responsiveness
+                // Use SENSOR_DELAY_UI for better responsiveness
                 // TYPE_STEP_COUNTER only fires when steps change, so delay doesn't matter much
-                val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+                val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
                 if (registered) {
                     android.util.Log.d("StepTrackingService", "Successfully registered step counter sensor listener")
                     android.util.Log.d("StepTrackingService", "Sensor name: ${sensor.name}, vendor: ${sensor.vendor}, maxRange: ${sensor.maximumRange}")
                     android.util.Log.d("StepTrackingService", "Sensor resolution: ${sensor.resolution}, power: ${sensor.power}mA")
+                    android.util.Log.d("StepTrackingService", "Service will stay running to receive sensor events")
                 } else {
                     android.util.Log.e("StepTrackingService", "Failed to register sensor listener")
                 }
@@ -175,13 +176,20 @@ class StepTrackingService : Service(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
             val currentSensorValue = event.values[0]
-            android.util.Log.d("StepTrackingService", "Sensor event received: currentValue=$currentSensorValue, lastValue=$lastSensorValue, totalSteps=$totalStepCount")
+            android.util.Log.d("StepTrackingService", "✓ Sensor event received: currentValue=$currentSensorValue, lastValue=$lastSensorValue, totalSteps=$totalStepCount")
             
             // First reading - just store baseline
             if (lastSensorValue == 0f) {
                 android.util.Log.d("StepTrackingService", "First sensor reading - storing baseline: $currentSensorValue")
                 lastSensorValue = currentSensorValue
                 userPreferences.setLastSensorValue(lastSensorValue)
+                // Also update totalStepCount to show current sensor value if it's the first time
+                // This helps if the user has already taken steps before installing the app
+                if (currentSensorValue > 0) {
+                    totalStepCount = currentSensorValue.toInt()
+                    userPreferences.setTotalStepCount(totalStepCount)
+                    android.util.Log.d("StepTrackingService", "Initialized totalStepCount with sensor value: $totalStepCount")
+                }
                 updateNotification()
                 return
             }

@@ -152,8 +152,12 @@ class MainActivity : AppCompatActivity() {
             android.util.Log.d("MainActivity", "Starting StepTrackingService...")
             val serviceIntent = Intent(this, StepTrackingService::class.java)
             
-            // Use regular startService since we're not using foreground service anymore
-            startService(serviceIntent)
+            // Use startForegroundService since the service calls startForeground()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
             android.util.Log.d("MainActivity", "Started service")
         } catch (e: SecurityException) {
             // Permission denied or service type not allowed
@@ -167,10 +171,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupStepCounter() {
-        // Don't start StepCounter listener - the service handles tracking
-        // Just set up UI update callback for when service updates steps
-        // The service updates UserPreferences, so we'll refresh from there
-        android.util.Log.d("MainActivity", "StepCounter setup - service will handle tracking")
+        // Start StepCounter listener to update steps when app is open
+        // This ensures steps are updated in real-time while app is running
+        stepCounter.onStepCountChanged = { newStepCount ->
+            runOnUiThread {
+                stepsText.text = newStepCount.toString()
+                android.util.Log.d("MainActivity", "Step count updated from StepCounter: $newStepCount")
+            }
+        }
+        stepCounter.startListening()
+        android.util.Log.d("MainActivity", "StepCounter started - will track steps while app is open")
     }
 
     private fun loadInitialData() {
@@ -191,6 +201,12 @@ class MainActivity : AppCompatActivity() {
         
         // Always try to start service (in case it stopped)
         startStepTrackingService()
+        
+        // Restart StepCounter listener to track steps while app is open
+        if (::stepCounter.isInitialized) {
+            stepCounter.startListening()
+            android.util.Log.d("MainActivity", "Restarted StepCounter listener")
+        }
         
         // Refresh step count immediately
         refreshStepCount()
@@ -458,7 +474,9 @@ class MainActivity : AppCompatActivity() {
         stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
         // Stop hourly sync when app goes to background (service continues counting steps)
         hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
-        android.util.Log.d("MainActivity", "Stopped UI updates and hourly sync (app paused)")
+        // Stop StepCounter listener when app goes to background (service handles it)
+        stepCounter.stopListening()
+        android.util.Log.d("MainActivity", "Stopped UI updates, hourly sync, and StepCounter (app paused)")
         
         android.util.Log.d("MainActivity", "Service continues running in background to count steps")
         // Service continues running in background to track steps
