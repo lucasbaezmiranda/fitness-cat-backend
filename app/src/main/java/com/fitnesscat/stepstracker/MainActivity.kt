@@ -16,6 +16,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import org.json.JSONArray
+import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
     
     private lateinit var stepsText: TextView
@@ -59,8 +66,34 @@ class MainActivity : AppCompatActivity() {
         // Load and display initial data (before permissions)
         loadInitialData()
         
+        // Schedule periodic step reading (every 30 minutes)
+        schedulePeriodicStepReading()
+        
         // Request permissions FIRST, then setup
         requestPermissions()
+    }
+    
+    /**
+     * Schedules StepWorker to run every 30 minutes to save step records
+     */
+    private fun schedulePeriodicStepReading() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED) // Can run offline
+            .build()
+        
+        val periodicWork = PeriodicWorkRequestBuilder<StepWorker>(
+            30, TimeUnit.MINUTES
+        )
+            .setConstraints(constraints)
+            .build()
+        
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "StepWorker",
+            ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
+            periodicWork
+        )
+        
+        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 30 minutes")
     }
 
     private fun requestPermissions() {
@@ -222,6 +255,9 @@ class MainActivity : AppCompatActivity() {
         
         // Start hourly automatic sync (only while app is open)
         startHourlySync()
+        
+        // Sync pending batch records when app opens
+        syncPendingBatchRecords()
         
         // Update debug status periodically
         updateDebugStatus()
@@ -429,6 +465,62 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         )
+    }
+    
+    /**
+     * Syncs pending batch records to API when app opens
+     * Reads all locally stored step records and sends them in batch
+     */
+    private fun syncPendingBatchRecords() {
+        try {
+            val pendingJson = userPreferences.getPendingStepRecords()
+            
+            if (pendingJson.isEmpty() || pendingJson == "[]") {
+                android.util.Log.d("MainActivity", "No pending records to sync")
+                return
+            }
+            
+            val records = JSONArray(pendingJson)
+            val userId = userPreferences.getUserId()
+            
+            if (records.length() == 0) {
+                android.util.Log.d("MainActivity", "No pending records to sync")
+                return
+            }
+            
+            android.util.Log.d("MainActivity", "Syncing ${records.length()} pending records in batch")
+            
+            // Send batch to API
+            apiClient.syncStepsBatch(
+                userId = userId,
+                records = records,
+                callback = { success, errorMessage ->
+                    runOnUiThread {
+                        if (success) {
+                            // Clear pending records on success
+                            userPreferences.clearPendingStepRecords()
+                            android.util.Log.d("MainActivity", "✓ Successfully synced ${records.length()} records in batch")
+                            Toast.makeText(
+                                this,
+                                "✓ Synced ${records.length()} records",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            // Keep records for retry
+                            android.util.Log.e("MainActivity", "✗ Failed to sync batch: $errorMessage")
+                            Toast.makeText(
+                                this,
+                                "Batch sync failed: ${errorMessage?.take(50) ?: "Unknown error"}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+            )
+            
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error syncing batch records: ${e.message}", e)
+        }
     }
     
     /**

@@ -2,6 +2,8 @@ package com.fitnesscat.stepstracker
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Helper class to manage user preferences, including user ID
@@ -18,6 +20,7 @@ class UserPreferences(context: Context) {
         private const val KEY_LAST_SYNC = "last_sync_timestamp"
         private const val KEY_TOTAL_STEP_COUNT = "total_step_count"  // Total steps accumulated
         private const val KEY_LAST_SENSOR_VALUE = "last_sensor_value"  // Last sensor reading
+        private const val KEY_PENDING_STEP_RECORDS = "pending_step_records"  // JSON array of pending records
     }
 
     fun getUserId(): String {
@@ -63,6 +66,57 @@ class UserPreferences(context: Context) {
 
     fun setLastSensorValue(value: Float) {
         prefs.edit().putFloat(KEY_LAST_SENSOR_VALUE, value).apply()
+    }
+    
+    /**
+     * Gets pending step records as JSON array string
+     * Format: [{"steps_at_time": 100, "timestamp": 1704123456}, ...]
+     */
+    fun getPendingStepRecords(): String {
+        return prefs.getString(KEY_PENDING_STEP_RECORDS, "[]") ?: "[]"
+    }
+    
+    /**
+     * Saves pending step records as JSON array string
+     * Format: [{"steps_at_time": 100, "timestamp": 1704123456}, ...]
+     */
+    fun savePendingStepRecords(jsonString: String) {
+        prefs.edit().putString(KEY_PENDING_STEP_RECORDS, jsonString).apply()
+    }
+    
+    /**
+     * Adds a new step record to pending records
+     * @param stepsAtTime Steps count at this timestamp
+     * @param timestamp Unix timestamp in seconds
+     */
+    fun addPendingStepRecord(stepsAtTime: Int, timestamp: Long) {
+        try {
+            val pendingJson = getPendingStepRecords()
+            val records = JSONArray(pendingJson)
+            
+            // Create new record
+            val newRecord = JSONObject().apply {
+                put("steps_at_time", stepsAtTime)
+                put("timestamp", timestamp)
+            }
+            
+            // Add to array
+            records.put(newRecord)
+            
+            // Save back
+            savePendingStepRecords(records.toString())
+            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp")
+        } catch (e: Exception) {
+            android.util.Log.e("UserPreferences", "Error adding pending record: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Clears all pending step records
+     */
+    fun clearPendingStepRecords() {
+        prefs.edit().putString(KEY_PENDING_STEP_RECORDS, "[]").apply()
+        android.util.Log.d("UserPreferences", "Cleared all pending step records")
     }
 }
 

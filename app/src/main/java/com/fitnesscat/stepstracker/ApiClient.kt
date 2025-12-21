@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -110,6 +111,87 @@ class ApiClient {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error syncing steps: ${e.message}", e)
+                callback?.invoke(false, e.message)
+            }
+        }
+    }
+    
+    /**
+     * Syncs multiple step records in batch to the API endpoint
+     * 
+     * @param userId User ID from UserPreferences
+     * @param records JSONArray of records, each with format: {"steps_at_time": 100, "timestamp": 1704123456}
+     * @param callback Optional callback to handle success/failure
+     */
+    fun syncStepsBatch(
+        userId: String,
+        records: JSONArray,
+        callback: ((Boolean, String?) -> Unit)? = null
+    ) {
+        // Check if endpoint is configured
+        if (API_ENDPOINT == "YOUR_API_GATEWAY_ENDPOINT_URL_HERE") {
+            Log.w(TAG, "API endpoint not configured. Please set API_ENDPOINT in ApiClient.kt")
+            callback?.invoke(false, "API endpoint not configured")
+            return
+        }
+        
+        // Check if records array is empty
+        if (records.length() == 0) {
+            Log.d(TAG, "No records to sync in batch")
+            callback?.invoke(true, null)
+            return
+        }
+        
+        // Run on background thread
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Create JSON request body matching Lambda batch format
+                // Format: {"user_id": "...", "records": [{"steps_at_time": 100, "timestamp": 1704123456}, ...]}
+                val jsonBody = JSONObject().apply {
+                    put("user_id", userId)
+                    put("records", records)
+                }
+                
+                val mediaType = "application/json; charset=utf-8".toMediaType()
+                val requestBody = jsonBody.toString().toRequestBody(mediaType)
+                
+                Log.d(TAG, "Sending batch sync: ${records.length()} records for user: $userId")
+                
+                // Create request with headers
+                val request = createRequest(API_ENDPOINT, requestBody)
+                
+                // Execute request
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    
+                    if (response.isSuccessful) {
+                        // Check if response contains {"ok": true}
+                        try {
+                            val jsonResponse = JSONObject(responseBody ?: "{}")
+                            val isOk = jsonResponse.optBoolean("ok", false)
+                            
+                            if (isOk) {
+                                Log.d(TAG, "Successfully synced batch: ${records.length()} records for user: $userId")
+                                callback?.invoke(true, null)
+                            } else {
+                                val errorMsg = "API returned ok=false: $responseBody"
+                                Log.e(TAG, "Failed to sync batch: $errorMsg")
+                                callback?.invoke(false, errorMsg)
+                            }
+                        } catch (e: Exception) {
+                            // Response is successful but JSON parsing failed - still consider it success
+                            Log.w(TAG, "Could not parse response JSON, but HTTP status is successful: $responseBody")
+                            Log.d(TAG, "Successfully synced batch: ${records.length()} records for user: $userId")
+                            callback?.invoke(true, null)
+                        }
+                    } else {
+                        val errorMsg = "HTTP ${response.code}: $responseBody"
+                        Log.e(TAG, "Failed to sync batch: $errorMsg")
+                        callback?.invoke(false, errorMsg)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error syncing batch: ${e.message}", e)
                 callback?.invoke(false, e.message)
             }
         }
