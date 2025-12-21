@@ -18,6 +18,7 @@ class UserPreferences(context: Context) {
         private const val KEY_LAST_SYNC = "last_sync_timestamp"
         private const val KEY_TOTAL_STEP_COUNT = "total_step_count"  // Total steps accumulated
         private const val KEY_LAST_SENSOR_VALUE = "last_sensor_value"  // Last sensor reading
+        private const val KEY_PENDING_STEP_RECORDS = "pending_step_records"  // JSON array of pending records
     }
 
     fun getUserId(): String {
@@ -63,6 +64,27 @@ class UserPreferences(context: Context) {
 
     fun setLastSensorValue(value: Float) {
         prefs.edit().putFloat(KEY_LAST_SENSOR_VALUE, value).apply()
+    }
+    
+    /**
+     * Gets pending step records for batch sync (stored as JSON string)
+     */
+    fun getPendingStepRecords(): String {
+        return prefs.getString(KEY_PENDING_STEP_RECORDS, "[]") ?: "[]"
+    }
+    
+    /**
+     * Saves pending step records for batch sync
+     */
+    fun savePendingStepRecords(jsonString: String) {
+        prefs.edit().putString(KEY_PENDING_STEP_RECORDS, jsonString).apply()
+    }
+    
+    /**
+     * Clears pending step records after successful sync
+     */
+    fun clearPendingStepRecords() {
+        prefs.edit().remove(KEY_PENDING_STEP_RECORDS).apply()
     }
 }
 
