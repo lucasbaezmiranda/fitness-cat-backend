@@ -73,3 +73,8 @@ EVENTO: Reinicio detectado post-apagón
 HORA DE RECUPERACIÓN: 24/12/2025 14:13:26
 NUEVA IP EN LATIOS: 192.168.0.102
 ------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:17:11
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
