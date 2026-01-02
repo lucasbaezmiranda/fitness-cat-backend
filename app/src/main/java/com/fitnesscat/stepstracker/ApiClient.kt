@@ -1,4 +1,4 @@
-|package com.fitnesscat.stepstracker
+package com.fitnesscat.stepstracker
 
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
