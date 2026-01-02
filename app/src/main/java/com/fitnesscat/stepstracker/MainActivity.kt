@@ -24,7 +24,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
     
@@ -517,43 +516,30 @@ class MainActivity : AppCompatActivity() {
      */
     private fun syncPendingBatchRecords() {
         try {
-            val pendingJson = userPreferences.getPendingStepRecords()
-            android.util.Log.d("MainActivity", "Raw pending JSON: $pendingJson")
+            val recordsJson = userPreferences.getPendingStepRecords()
+            android.util.Log.d("MainActivity", "Pending records JSON: $recordsJson")
             
-            if (pendingJson.isEmpty() || pendingJson == "[]") {
+            if (recordsJson.isEmpty() || recordsJson == "[]") {
                 android.util.Log.d("MainActivity", "No pending records to sync")
                 return
             }
             
-            val records = JSONArray(pendingJson)
             val userId = userPreferences.getUserId()
+            android.util.Log.d("MainActivity", "Syncing batch for user: $userId")
             
-            if (records.length() == 0) {
-                android.util.Log.d("MainActivity", "No pending records to sync (empty array)")
-                return
-            }
-            
-            android.util.Log.d("MainActivity", "Syncing ${records.length()} pending records in batch for user: $userId")
-            
-            // Log each record for debugging
-            for (i in 0 until records.length()) {
-                val record = records.getJSONObject(i)
-                android.util.Log.d("MainActivity", "  Record $i: steps_at_time=${record.getInt("steps_at_time")}, timestamp=${record.getLong("timestamp")}")
-            }
-            
-            // Send batch to API
+            // Send batch to API (pasa el string directamente)
             apiClient.syncStepsBatch(
                 userId = userId,
-                records = records,
+                recordsJsonString = recordsJson,
                 callback = { success, errorMessage ->
                     runOnUiThread {
                         if (success) {
                             // Clear pending records on success
                             userPreferences.clearPendingStepRecords()
-                            android.util.Log.d("MainActivity", "✓ Successfully synced ${records.length()} records in batch")
+                            android.util.Log.d("MainActivity", "✓ Successfully synced batch")
                             Toast.makeText(
                                 this,
-                                "✓ Synced ${records.length()} records",
+                                "✓ Synced batch",
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
@@ -561,8 +547,8 @@ class MainActivity : AppCompatActivity() {
                             android.util.Log.e("MainActivity", "✗ Failed to sync batch: $errorMessage")
                             Toast.makeText(
                                 this,
-                                "Batch sync failed: ${errorMessage?.take(50) ?: "Unknown error"}",
-                                Toast.LENGTH_SHORT
+                                "Batch sync failed: ${errorMessage?.take(80) ?: "Unknown error"}",
+                                Toast.LENGTH_LONG
                             ).show()
                         }
                     }
@@ -571,6 +557,11 @@ class MainActivity : AppCompatActivity() {
             
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "Error syncing batch records: ${e.message}", e)
+            Toast.makeText(
+                this,
+                "Error: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
     

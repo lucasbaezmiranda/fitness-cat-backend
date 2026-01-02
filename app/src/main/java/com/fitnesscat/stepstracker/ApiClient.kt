@@ -120,12 +120,12 @@ class ApiClient {
      * Syncs multiple step records in batch to the API endpoint
      * 
      * @param userId User ID from UserPreferences
-     * @param records JSONArray of records, each with format: {"steps_at_time": 100, "timestamp": 1704123456}
+     * @param recordsJsonString JSON array string, format: [{"steps_at_time": 100, "timestamp": 1704123456}, ...]
      * @param callback Optional callback to handle success/failure
      */
     fun syncStepsBatch(
         userId: String,
-        records: JSONArray,
+        recordsJsonString: String,
         callback: ((Boolean, String?) -> Unit)? = null
     ) {
         // Check if endpoint is configured
@@ -136,7 +136,7 @@ class ApiClient {
         }
         
         // Check if records array is empty
-        if (records.length() == 0) {
+        if (recordsJsonString.isEmpty() || recordsJsonString == "[]") {
             Log.d(TAG, "No records to sync in batch")
             callback?.invoke(true, null)
             return
@@ -145,18 +145,15 @@ class ApiClient {
         // Run on background thread
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Create JSON request body matching Lambda batch format
-                // Format: {"user_id": "...", "records": [{"steps_at_time": 100, "timestamp": 1704123456}, ...]}
-                val jsonBody = JSONObject().apply {
-                    put("user_id", userId)
-                    put("records", records)
-                }
+                // Construir JSON final como string directamente
+                // Format: {"user_id": "...", "records": [...]}
+                val jsonString = "{\"user_id\":\"$userId\",\"records\":$recordsJsonString}"
+                
+                Log.d(TAG, "Sending batch sync for user: $userId")
+                Log.d(TAG, "JSON body: $jsonString")
                 
                 val mediaType = "application/json; charset=utf-8".toMediaType()
-                val requestBody = jsonBody.toString().toRequestBody(mediaType)
-                
-                Log.d(TAG, "Sending batch sync: ${records.length()} records for user: $userId")
-                Log.d(TAG, "Batch JSON body: ${jsonBody.toString()}")
+                val requestBody = jsonString.toRequestBody(mediaType)
                 
                 // Create request with headers
                 val request = createRequest(API_ENDPOINT, requestBody)
@@ -165,34 +162,26 @@ class ApiClient {
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string()
                     
+                    Log.d(TAG, "Response: HTTP ${response.code} - $responseBody")
+                    
                     if (response.isSuccessful) {
-                        // Check if response contains {"ok": true}
-                        try {
-                            val jsonResponse = JSONObject(responseBody ?: "{}")
-                            val isOk = jsonResponse.optBoolean("ok", false)
-                            
-                            if (isOk) {
-                                Log.d(TAG, "Successfully synced batch: ${records.length()} records for user: $userId")
-                                callback?.invoke(true, null)
-                            } else {
-                                val errorMsg = "API returned ok=false: $responseBody"
-                                Log.e(TAG, "Failed to sync batch: $errorMsg")
-                                callback?.invoke(false, errorMsg)
-                            }
-                        } catch (e: Exception) {
-                            // Response is successful but JSON parsing failed - still consider it success
-                            Log.w(TAG, "Could not parse response JSON, but HTTP status is successful: $responseBody")
-                            Log.d(TAG, "Successfully synced batch: ${records.length()} records for user: $userId")
+                        // Verificar si contiene "ok":true (más simple que parsear JSON completo)
+                        if (responseBody?.contains("\"ok\":true") == true || responseBody?.contains("\"ok\": true") == true) {
+                            Log.d(TAG, "✓ Successfully synced batch for user: $userId")
                             callback?.invoke(true, null)
+                        } else {
+                            val errorMsg = "API returned ok=false: $responseBody"
+                            Log.e(TAG, "✗ Failed to sync batch: $errorMsg")
+                            callback?.invoke(false, errorMsg)
                         }
                     } else {
                         val errorMsg = "HTTP ${response.code}: $responseBody"
-                        Log.e(TAG, "Failed to sync batch: $errorMsg")
+                        Log.e(TAG, "✗ Failed to sync batch: $errorMsg")
                         callback?.invoke(false, errorMsg)
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error syncing batch: ${e.message}", e)
+                Log.e(TAG, "✗ Error syncing batch: ${e.message}", e)
                 callback?.invoke(false, e.message)
             }
         }

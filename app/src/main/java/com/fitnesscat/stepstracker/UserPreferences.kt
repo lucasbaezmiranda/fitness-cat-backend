@@ -2,8 +2,6 @@ package com.fitnesscat.stepstracker
 
 import android.content.Context
 import android.content.SharedPreferences
-import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Helper class to manage user preferences, including user ID
@@ -85,31 +83,28 @@ class UserPreferences(context: Context) {
     }
     
     /**
-     * Adds a new step record to pending records
+     * Adds a new step record to pending records (as JSON string)
      * @param stepsAtTime Steps count at this timestamp
      * @param timestamp Unix timestamp in seconds
      */
     fun addPendingStepRecord(stepsAtTime: Int, timestamp: Long) {
         try {
             val pendingJson = getPendingStepRecords()
-            val records = JSONArray(pendingJson)
-            val previousCount = records.length()
             
-            // Create new record
-            val newRecord = JSONObject().apply {
-                put("steps_at_time", stepsAtTime)
-                put("timestamp", timestamp)
+            // Construir nuevo record como string JSON
+            val newRecord = "{\"steps_at_time\":$stepsAtTime,\"timestamp\":$timestamp}"
+            
+            // Si está vacío, crear array nuevo, sino agregar al existente
+            val updatedJson = if (pendingJson == "[]") {
+                "[$newRecord]"
+            } else {
+                // Remover el "]" final, agregar coma y nuevo record, luego cerrar array
+                pendingJson.dropLast(1) + ",$newRecord]"
             }
             
-            // Add to array
-            records.put(newRecord)
-            
-            // Save back
-            savePendingStepRecords(records.toString())
-            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp (total records: ${previousCount + 1})")
-            
-            // Log all records for debugging
-            android.util.Log.d("UserPreferences", "All pending records: ${records.toString()}")
+            savePendingStepRecords(updatedJson)
+            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp")
+            android.util.Log.d("UserPreferences", "Updated JSON: $updatedJson")
         } catch (e: Exception) {
             android.util.Log.e("UserPreferences", "Error adding pending record: ${e.message}", e)
         }
