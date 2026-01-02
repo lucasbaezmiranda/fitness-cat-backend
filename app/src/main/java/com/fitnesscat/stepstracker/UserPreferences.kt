@@ -93,6 +93,7 @@ class UserPreferences(context: Context) {
         try {
             val pendingJson = getPendingStepRecords()
             val records = JSONArray(pendingJson)
+            val previousCount = records.length()
             
             // Create new record
             val newRecord = JSONObject().apply {
@@ -105,7 +106,10 @@ class UserPreferences(context: Context) {
             
             // Save back
             savePendingStepRecords(records.toString())
-            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp")
+            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp (total records: ${previousCount + 1})")
+            
+            // Log all records for debugging
+            android.util.Log.d("UserPreferences", "All pending records: ${records.toString()}")
         } catch (e: Exception) {
             android.util.Log.e("UserPreferences", "Error adding pending record: ${e.message}", e)
         }

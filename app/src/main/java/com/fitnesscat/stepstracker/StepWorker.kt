@@ -11,6 +11,7 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -49,10 +50,21 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         // Get current timestamp in seconds (Unix timestamp)
         val timestamp = System.currentTimeMillis() / 1000
         
+        // Log before saving
+        val currentPendingCount = try {
+            val pendingJson = userPreferences.getPendingStepRecords()
+            val currentRecords = JSONArray(pendingJson)
+            currentRecords.length()
+        } catch (e: Exception) {
+            0
+        }
+        
+        Log.d(TAG, "StepWorker: About to save record (current pending count: $currentPendingCount)")
+        
         // Save as pending record
         userPreferences.addPendingStepRecord(stepCount, timestamp)
         
-        Log.d(TAG, "✓ Saved step record: steps=$stepCount, timestamp=$timestamp")
+        Log.d(TAG, "✓ Saved step record: steps=$stepCount, timestamp=$timestamp (now ${currentPendingCount + 1} pending records)")
         
         return Result.success()
     }
@@ -146,4 +158,7 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         }
     }
 }
+
+
+
 

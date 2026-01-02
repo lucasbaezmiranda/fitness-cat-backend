@@ -474,6 +474,7 @@ class MainActivity : AppCompatActivity() {
     private fun syncPendingBatchRecords() {
         try {
             val pendingJson = userPreferences.getPendingStepRecords()
+            android.util.Log.d("MainActivity", "Raw pending JSON: $pendingJson")
             
             if (pendingJson.isEmpty() || pendingJson == "[]") {
                 android.util.Log.d("MainActivity", "No pending records to sync")
@@ -484,11 +485,17 @@ class MainActivity : AppCompatActivity() {
             val userId = userPreferences.getUserId()
             
             if (records.length() == 0) {
-                android.util.Log.d("MainActivity", "No pending records to sync")
+                android.util.Log.d("MainActivity", "No pending records to sync (empty array)")
                 return
             }
             
-            android.util.Log.d("MainActivity", "Syncing ${records.length()} pending records in batch")
+            android.util.Log.d("MainActivity", "Syncing ${records.length()} pending records in batch for user: $userId")
+            
+            // Log each record for debugging
+            for (i in 0 until records.length()) {
+                val record = records.getJSONObject(i)
+                android.util.Log.d("MainActivity", "  Record $i: steps_at_time=${record.getInt("steps_at_time")}, timestamp=${record.getLong("timestamp")}")
+            }
             
             // Send batch to API
             apiClient.syncStepsBatch(
