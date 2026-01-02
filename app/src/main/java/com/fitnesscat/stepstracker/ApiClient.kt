@@ -1,4 +1,4 @@
-package com.fitnesscat.stepstracker
+|package com.fitnesscat.stepstracker
 
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -156,6 +156,7 @@ class ApiClient {
                 val requestBody = jsonBody.toString().toRequestBody(mediaType)
                 
                 Log.d(TAG, "Sending batch sync: ${records.length()} records for user: $userId")
+                Log.d(TAG, "Batch JSON body: ${jsonBody.toString()}")
                 
                 // Create request with headers
                 val request = createRequest(API_ENDPOINT, requestBody)
