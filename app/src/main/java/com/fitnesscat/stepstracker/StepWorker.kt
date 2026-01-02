@@ -43,8 +43,9 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         val stepCount = readCurrentStepCount()
         
         if (stepCount == null) {
-            Log.w(TAG, "Failed to read step count from sensor")
-            return Result.retry() // Retry later
+            Log.w(TAG, "Failed to read step count from sensor - will retry")
+            // Use exponential backoff for retries
+            return Result.retry()
         }
         
         // Get current timestamp in seconds (Unix timestamp)
@@ -62,11 +63,14 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         Log.d(TAG, "StepWorker: About to save record (current pending count: $currentPendingCount)")
         
         // Save as pending record
-        userPreferences.addPendingStepRecord(stepCount, timestamp)
-        
-        Log.d(TAG, "✓ Saved step record: steps=$stepCount, timestamp=$timestamp (now ${currentPendingCount + 1} pending records)")
-        
-        return Result.success()
+        try {
+            userPreferences.addPendingStepRecord(stepCount, timestamp)
+            Log.d(TAG, "✓ Saved step record: steps=$stepCount, timestamp=$timestamp (now ${currentPendingCount + 1} pending records)")
+            return Result.success()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving step record: ${e.message}", e)
+            return Result.retry() // Retry if save failed
+        }
     }
     
     /**

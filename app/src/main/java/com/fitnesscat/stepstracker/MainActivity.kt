@@ -6,10 +6,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -71,29 +74,70 @@ class MainActivity : AppCompatActivity() {
         
         // Request permissions FIRST, then setup
         requestPermissions()
+        
+        // Request battery optimization exemption (important for Motorola and other restrictive devices)
+        requestBatteryOptimizationExemption()
     }
     
     /**
      * Schedules StepWorker to run every 30 minutes to save step records
+     * Uses minimal constraints to work on restrictive devices like Motorola
      */
     private fun schedulePeriodicStepReading() {
+        // Minimal constraints - allow work even when device is idle/charging
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.NOT_REQUIRED) // Can run offline
+            .setRequiresBatteryNotLow(false) // Allow even when battery is low
+            .setRequiresCharging(false) // Don't require charging
+            .setRequiresDeviceIdle(false) // Allow even when device is active
             .build()
         
         val periodicWork = PeriodicWorkRequestBuilder<StepWorker>(
             30, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
+            .setInitialDelay(5, TimeUnit.MINUTES) // Start after 5 minutes
             .build()
         
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "StepWorker",
-            ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
+            ExistingPeriodicWorkPolicy.REPLACE, // Replace existing to ensure it runs
             periodicWork
         )
         
-        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 30 minutes")
+        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 30 minutes with minimal constraints")
+    }
+    
+    /**
+     * Requests user to disable battery optimization for this app
+     * This is critical for background step tracking on Motorola and other restrictive devices
+     */
+    private fun requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val packageName = packageName
+            
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                    android.util.Log.d("MainActivity", "Requested battery optimization exemption")
+                } catch (e: Exception) {
+                    // Fallback: open battery settings manually
+                    try {
+                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        startActivity(intent)
+                        android.util.Log.d("MainActivity", "Opened battery optimization settings")
+                    } catch (e2: Exception) {
+                        android.util.Log.e("MainActivity", "Could not open battery settings: ${e2.message}")
+                    }
+                }
+            } else {
+                android.util.Log.d("MainActivity", "Battery optimization already disabled")
+            }
+        }
     }
 
     private fun requestPermissions() {
