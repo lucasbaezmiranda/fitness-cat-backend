@@ -8,3 +8,143 @@ EVENTO: Reinicio detectado post-apagón
 HORA DE RECUPERACIÓN: 21/12/2025 21:31:28
 NUEVA IP EN LATIOS: 192.168.0.102
 ------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 23/12/2025 15:34:08
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 23/12/2025 16:17:27
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 23/12/2025 16:46:29
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 12:44:18
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 12:46:35
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 12:52:07
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 12:58:40
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 13:01:47
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 13:20:46
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 13:52:40
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:01:13
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:04:43
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:13:26
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:17:11
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:22:17
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:27:19
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:36:59
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:42:26
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:53:55
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 14:59:29
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 15:14:36
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 15:28:39
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 15:35:22
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 15:43:08
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 15:56:54
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 16:13:56
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 24/12/2025 16:24:00
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
+------------------------------------------
+EVENTO: Reinicio detectado post-apagón
+HORA DE RECUPERACIÓN: 31/12/2025 22:21:20
+NUEVA IP EN LATIOS: 192.168.0.102
+------------------------------------------
