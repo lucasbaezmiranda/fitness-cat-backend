@@ -130,6 +130,7 @@ class StepTrackingService : Service(), SensorEventListener {
                 android.util.Log.d("StepTrackingService", "Starting step tracking - permission: granted, sensor: available")
                 AppLogger.log("StepTrackingService", "✓ Permission granted, sensor available")
                 AppLogger.log("StepTrackingService", "State: steps=$totalStepCount, sensor=$lastSensorValue")
+                AppLogger.log("StepTrackingService", "Calling startStepTracking()...")
                 startStepTracking()
             } else {
                 if (!hasPermission) {
@@ -207,7 +208,13 @@ class StepTrackingService : Service(), SensorEventListener {
     
     private fun startStepTracking() {
         try {
+            android.util.Log.d("StepTrackingService", "startStepTracking() called")
+            AppLogger.log("StepTrackingService", "startStepTracking() called")
+            
             stepCounterSensor?.let { sensor ->
+                android.util.Log.d("StepTrackingService", "Sensor found: ${sensor.name}, type=${sensor.type}")
+                AppLogger.log("StepTrackingService", "Sensor found: ${sensor.name}")
+                
                 // Use SENSOR_DELAY_UI for better responsiveness
                 // TYPE_STEP_COUNTER only fires when steps change, so delay doesn't matter much
                 val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
@@ -216,14 +223,19 @@ class StepTrackingService : Service(), SensorEventListener {
                     android.util.Log.d("StepTrackingService", "Sensor name: ${sensor.name}, vendor: ${sensor.vendor}, maxRange: ${sensor.maximumRange}")
                     android.util.Log.d("StepTrackingService", "Sensor resolution: ${sensor.resolution}, power: ${sensor.power}mA")
                     android.util.Log.d("StepTrackingService", "Service will stay running to receive sensor events")
+                    AppLogger.log("StepTrackingService", "✓ Sensor listener registered successfully")
+                    AppLogger.log("StepTrackingService", "Waiting for sensor events...")
                 } else {
                     android.util.Log.e("StepTrackingService", "Failed to register sensor listener")
+                    AppLogger.log("StepTrackingService", "✗ Failed to register sensor listener")
                 }
             } ?: run {
                 android.util.Log.w("StepTrackingService", "Step counter sensor is null")
+                AppLogger.log("StepTrackingService", "✗ Step counter sensor is null")
             }
         } catch (e: Exception) {
             android.util.Log.e("StepTrackingService", "Error starting step tracking: ${e.message}", e)
+            AppLogger.log("StepTrackingService", "✗ Error in startStepTracking: ${e.javaClass.simpleName}: ${e.message}")
         }
     }
     
@@ -231,6 +243,7 @@ class StepTrackingService : Service(), SensorEventListener {
         if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
             val currentSensorValue = event.values[0]
             android.util.Log.d("StepTrackingService", "✓ Sensor event received: currentValue=$currentSensorValue, lastValue=$lastSensorValue, totalSteps=$totalStepCount")
+            AppLogger.log("StepTrackingService", "✓ Sensor event! current=$currentSensorValue, last=$lastSensorValue, total=$totalStepCount")
             
             // First reading - just store baseline
             if (lastSensorValue == 0f) {
