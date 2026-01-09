@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
         
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "StepWorker",
-            ExistingPeriodicWorkPolicy.REPLACE, // Replace existing to ensure it runs
+            ExistingPeriodicWorkPolicy.UPDATE, // Update existing work with new constraints
             periodicWork
         )
         

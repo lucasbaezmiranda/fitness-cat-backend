@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.os.Build
+import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -116,57 +117,92 @@ class DevFragment : Fragment() {
             statusMessages.add("✗ Sensor: NOT AVAILABLE")
         }
         
-        // Check service status - try multiple methods
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
-        
-        // Check by class name
-        var serviceRunning = runningServices.any {
-            it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
+        // Check service status - use notification manager to check if foreground service is running
+        // getRunningServices() is deprecated, so we check notifications instead for foreground services
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val activeNotifications = notificationManager.activeNotifications
+        var serviceRunning = activeNotifications.any { notification ->
+            notification.id == 1 && notification.tag == null // Our service uses notification ID 1
         }
         
-        // Also check by package name + service name
-        if (!serviceRunning) {
+        // Fallback: Try deprecated method as last resort (suppress warning for now)
+        if (!serviceRunning && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            @Suppress("DEPRECATION")
+            val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
             serviceRunning = runningServices.any {
-                it.service.packageName == context.packageName && 
-                it.service.className.contains("StepTrackingService")
+                it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
             }
         }
         
-        // Log all running services for debugging
-        android.util.Log.d("DevFragment", "Total running services: ${runningServices.size}")
-        runningServices.take(10).forEach { service ->
-            android.util.Log.d("DevFragment", "Running service: ${service.service.packageName}.${service.service.className}")
-        }
+        android.util.Log.d("DevFragment", "Service running check - notification based: $serviceRunning")
         
         if (serviceRunning) {
             statusMessages.add("✓ Service: Running")
         } else {
             statusMessages.add("✗ Service: NOT RUNNING")
-            // Try to start the service if it's not running
+            
+            // Diagnostic information - why might it not be running?
             val mainActivity = activity as? MainActivity
-            if (mainActivity != null) {
+            if (mainActivity != null && hasActivityRecognition && hasNotificationPermission) {
+                // All permissions granted, but service not running - check why
+                if (stepCounterSensor == null) {
+                    statusMessages.add("⚠ Reason: Sensor NOT AVAILABLE")
+                    statusMessages.add("   (Service needs sensor to run)")
+                } else {
+                    statusMessages.add("⚠ Reason: Unknown (check logs)")
+                    statusMessages.add("   Trying to restart...")
+                }
+                
+                // Try to start the service
                 try {
                     android.util.Log.d("DevFragment", "Service not running - attempting to start...")
                     mainActivity.startStepTrackingService()
+                    
                     // Give it a moment and check again
                     mainHandler.postDelayed({
-                        val retryRunningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
-                        val retryServiceRunning = retryRunningServices.any {
-                            it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
+                        val retryNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                        val retryActiveNotifications = retryNotificationManager.activeNotifications
+                        val retryServiceRunning = retryActiveNotifications.any { notification ->
+                            notification.id == 1 && notification.tag == null
                         }
                         if (retryServiceRunning) {
                             android.util.Log.d("DevFragment", "Service started successfully after retry")
                             updateDebugStatus()
                         } else {
                             android.util.Log.w("DevFragment", "Service still not running after start attempt")
-                            statusMessages.add("⚠ Service start attempted but failed")
+                            // Check again why it's not running
+                            val retrySensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+                            if (retrySensor == null) {
+                                statusMessages.add("⚠ Still failing: Sensor unavailable")
+                            } else {
+                                statusMessages.add("⚠ Still failing: Check Android version")
+                                statusMessages.add("   Android: ${Build.VERSION.SDK_INT}")
+                                if (Build.VERSION.SDK_INT >= 34) {
+                                    statusMessages.add("   (Android 14+ may need foregroundServiceType)")
+                                }
+                            }
+                            updateDebugStatus()
                         }
-                    }, 1000)
+                    }, 1500)
+                } catch (e: SecurityException) {
+                    android.util.Log.e("DevFragment", "SecurityException: ${e.message}", e)
+                    statusMessages.add("⚠ Error: SecurityException")
+                    statusMessages.add("   ${e.message}")
+                } catch (e: IllegalStateException) {
+                    android.util.Log.e("DevFragment", "IllegalStateException: ${e.message}", e)
+                    statusMessages.add("⚠ Error: IllegalStateException")
+                    statusMessages.add("   ${e.message}")
                 } catch (e: Exception) {
                     android.util.Log.e("DevFragment", "Could not restart service: ${e.message}", e)
-                    statusMessages.add("⚠ Error: ${e.message}")
+                    statusMessages.add("⚠ Error: ${e.javaClass.simpleName}")
+                    statusMessages.add("   ${e.message}")
                 }
+            } else if (!hasActivityRecognition) {
+                statusMessages.add("⚠ Reason: Missing Activity Recognition")
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+                statusMessages.add("⚠ Reason: Missing Notification permission")
             }
         }
         
@@ -174,6 +210,9 @@ class DevFragment : Fragment() {
         val mainActivity = activity as? MainActivity
         val lastSensorValue = mainActivity?.userPreferences?.getLastSensorValue() ?: 0f
         statusMessages.add("Last Sensor: $lastSensorValue")
+        
+        // Add Android version info for debugging
+        statusMessages.add("Android: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})")
         
         // Update UI
         devStatusText.text = statusMessages.joinToString("\n")

@@ -59,11 +59,20 @@ class StepTrackingService : Service(), SensorEventListener {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("StepTrackingService", "Failed to start foreground: ${e.message}", e)
+                android.util.Log.e("StepTrackingService", "Stack trace: ${e.stackTraceToString()}")
                 // Try without service type for older versions
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    startForeground(NOTIFICATION_ID, createNotification())
+                    try {
+                        startForeground(NOTIFICATION_ID, createNotification())
+                        android.util.Log.d("StepTrackingService", "Successfully started foreground without service type")
+                    } catch (e2: Exception) {
+                        android.util.Log.e("StepTrackingService", "Failed to start foreground even without service type: ${e2.message}", e2)
+                        throw e2
+                    }
                 } else {
-                    throw e
+                    android.util.Log.e("StepTrackingService", "Cannot start foreground service - stopping service")
+                    stopSelf()
+                    return
                 }
             }
             
