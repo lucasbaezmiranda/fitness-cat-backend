@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.net.Uri
@@ -14,10 +13,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -178,8 +173,7 @@ class MainActivity : AppCompatActivity() {
                 PERMISSION_REQUEST_CODE
             )
         } else {
-            // All permissions already granted, setup and start service
-            setupStepCounter()
+            // All permissions already granted, start service
             startStepTrackingService()
         }
     }
@@ -200,16 +194,13 @@ class MainActivity : AppCompatActivity() {
             }
             
             if (allGranted) {
-                setupStepCounter()
                 startStepTrackingService()
-                updateDebugStatus()
             } else {
                 Toast.makeText(
                     this,
                     getString(R.string.permission_denied),
                     Toast.LENGTH_LONG
                 ).show()
-                updateDebugStatus()
             }
         }
     }
@@ -478,7 +469,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // Clean up handlers
-        stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
         hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
         android.util.Log.d("MainActivity", "Cleaned up handlers (app destroyed)")
         // Service continues running in background to track steps
