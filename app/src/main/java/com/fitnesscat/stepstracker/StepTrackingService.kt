@@ -289,11 +289,13 @@ class StepTrackingService : Service(), SensorEventListener {
                 userPreferences.setLastSensorValue(lastSensorValue)
                 
                 android.util.Log.d("StepTrackingService", "Updated step count: +$stepsSinceLastReading steps. New total: $totalStepCount")
+                AppLogger.log("StepTrackingService", "✓ Saved to UserPreferences: total=$totalStepCount (+$stepsSinceLastReading)")
                 
                 // Update notification
                 updateNotification()
             } else {
                 android.util.Log.d("StepTrackingService", "No new steps detected (stepsSinceLastReading=$stepsSinceLastReading)")
+                AppLogger.log("StepTrackingService", "No new steps (delta=$stepsSinceLastReading)")
             }
         } else {
             android.util.Log.w("StepTrackingService", "Received sensor event for wrong sensor type: ${event?.sensor?.type}")
