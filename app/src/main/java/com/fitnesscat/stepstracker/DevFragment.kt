@@ -72,8 +72,8 @@ class DevFragment : Fragment() {
         val context = requireContext()
         val statusMessages = mutableListOf<String>()
         
-        // Check permission
-        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // Check Activity Recognition permission
+        val hasActivityRecognition = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACTIVITY_RECOGNITION
@@ -82,10 +82,28 @@ class DevFragment : Fragment() {
             true
         }
         
-        if (hasPermission) {
-            statusMessages.add("✓ Permission: Granted")
+        // Check Notification permission (required for foreground service on Android 13+)
+        val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         } else {
-            statusMessages.add("✗ Permission: DENIED")
+            true
+        }
+        
+        if (hasActivityRecognition) {
+            statusMessages.add("✓ Activity Recognition: Granted")
+        } else {
+            statusMessages.add("✗ Activity Recognition: DENIED")
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (hasNotificationPermission) {
+                statusMessages.add("✓ Notifications: Granted")
+            } else {
+                statusMessages.add("✗ Notifications: DENIED (needed for service)")
+            }
         }
         
         // Check sensor availability
@@ -98,11 +116,27 @@ class DevFragment : Fragment() {
             statusMessages.add("✗ Sensor: NOT AVAILABLE")
         }
         
-        // Check service status
+        // Check service status - try multiple methods
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
         val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
-        val serviceRunning = runningServices.any {
+        
+        // Check by class name
+        var serviceRunning = runningServices.any {
             it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
+        }
+        
+        // Also check by package name + service name
+        if (!serviceRunning) {
+            serviceRunning = runningServices.any {
+                it.service.packageName == context.packageName && 
+                it.service.className.contains("StepTrackingService")
+            }
+        }
+        
+        // Log all running services for debugging
+        android.util.Log.d("DevFragment", "Total running services: ${runningServices.size}")
+        runningServices.take(10).forEach { service ->
+            android.util.Log.d("DevFragment", "Running service: ${service.service.packageName}.${service.service.className}")
         }
         
         if (serviceRunning) {
@@ -115,8 +149,23 @@ class DevFragment : Fragment() {
                 try {
                     android.util.Log.d("DevFragment", "Service not running - attempting to start...")
                     mainActivity.startStepTrackingService()
+                    // Give it a moment and check again
+                    mainHandler.postDelayed({
+                        val retryRunningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
+                        val retryServiceRunning = retryRunningServices.any {
+                            it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
+                        }
+                        if (retryServiceRunning) {
+                            android.util.Log.d("DevFragment", "Service started successfully after retry")
+                            updateDebugStatus()
+                        } else {
+                            android.util.Log.w("DevFragment", "Service still not running after start attempt")
+                            statusMessages.add("⚠ Service start attempted but failed")
+                        }
+                    }, 1000)
                 } catch (e: Exception) {
-                    android.util.Log.e("DevFragment", "Could not restart service: ${e.message}")
+                    android.util.Log.e("DevFragment", "Could not restart service: ${e.message}", e)
+                    statusMessages.add("⚠ Error: ${e.message}")
                 }
             }
         }
@@ -130,7 +179,8 @@ class DevFragment : Fragment() {
         devStatusText.text = statusMessages.joinToString("\n")
         
         // Color code based on status
-        if (!hasPermission || stepCounterSensor == null || !serviceRunning) {
+        val hasAllPermissions = hasActivityRecognition && (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || hasNotificationPermission)
+        if (!hasAllPermissions || stepCounterSensor == null || !serviceRunning) {
             devStatusText.setTextColor(0xFFFF0000.toInt()) // Red
         } else if (lastSensorValue == 0f) {
             devStatusText.setTextColor(0xFFFF8800.toInt()) // Orange - waiting for sensor

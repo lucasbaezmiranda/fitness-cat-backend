@@ -174,7 +174,14 @@ class MainActivity : AppCompatActivity() {
             )
         } else {
             // All permissions already granted, start service
+            android.util.Log.d("MainActivity", "All permissions already granted - starting service")
             startStepTrackingService()
+            
+            // Also retry after 2 seconds to ensure service starts (in case of timing issues)
+            mainHandler.postDelayed({
+                android.util.Log.d("MainActivity", "Retrying service start after 2 seconds (already had permissions)...")
+                startStepTrackingService()
+            }, 2000)
         }
     }
 
@@ -194,7 +201,15 @@ class MainActivity : AppCompatActivity() {
             }
             
             if (allGranted) {
+                android.util.Log.d("MainActivity", "All permissions granted - starting service")
+                // Try to start service immediately
                 startStepTrackingService()
+                
+                // Also retry after 2 seconds to ensure service starts (in case of timing issues)
+                mainHandler.postDelayed({
+                    android.util.Log.d("MainActivity", "Retrying service start after 2 seconds...")
+                    startStepTrackingService()
+                }, 2000)
             } else {
                 Toast.makeText(
                     this,
@@ -221,30 +236,56 @@ class MainActivity : AppCompatActivity() {
                 true // Permission not needed on older versions
             }
             
+            // Check notification permission for Android 13+ (required for foreground service)
+            val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true // Permission not needed on older versions
+            }
+            
             if (!hasActivityRecognition) {
                 // Permission not granted, don't start service
                 android.util.Log.w("MainActivity", "Activity Recognition permission not granted - cannot start service")
                 return
             }
             
+            if (!hasNotificationPermission) {
+                // Notification permission not granted (required for foreground service on Android 13+)
+                android.util.Log.w("MainActivity", "POST_NOTIFICATIONS permission not granted - cannot start foreground service")
+                return
+            }
+            
             android.util.Log.d("MainActivity", "Starting StepTrackingService...")
+            android.util.Log.d("MainActivity", "Permissions - ActivityRecognition: $hasActivityRecognition, Notifications: $hasNotificationPermission")
+            
             val serviceIntent = Intent(this, StepTrackingService::class.java)
             
             // Use startForegroundService since the service calls startForeground()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(serviceIntent)
+                android.util.Log.d("MainActivity", "Called startForegroundService()")
             } else {
                 startService(serviceIntent)
+                android.util.Log.d("MainActivity", "Called startService() (pre-Android O)")
             }
-            android.util.Log.d("MainActivity", "Started service")
+            android.util.Log.d("MainActivity", "Service start requested")
         } catch (e: SecurityException) {
             // Permission denied or service type not allowed
-            android.util.Log.e("MainActivity", "Failed to start service: ${e.message}", e)
+            android.util.Log.e("MainActivity", "SecurityException starting service: ${e.message}", e)
+            android.util.Log.e("MainActivity", "Stack trace: ${e.stackTraceToString()}")
             Toast.makeText(this, "Cannot start step tracking: ${e.message}", Toast.LENGTH_LONG).show()
+        } catch (e: IllegalStateException) {
+            // Service cannot be started (might already be starting)
+            android.util.Log.e("MainActivity", "IllegalStateException starting service: ${e.message}", e)
+            android.util.Log.e("MainActivity", "Stack trace: ${e.stackTraceToString()}")
         } catch (e: Exception) {
             // Other errors
             android.util.Log.e("MainActivity", "Error starting service: ${e.message}", e)
-            Toast.makeText(this, "Error starting service", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("MainActivity", "Stack trace: ${e.stackTraceToString()}")
+            Toast.makeText(this, "Error starting service: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
