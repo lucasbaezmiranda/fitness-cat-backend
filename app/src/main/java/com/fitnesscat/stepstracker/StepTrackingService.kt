@@ -47,30 +47,69 @@ class StepTrackingService : Service(), SensorEventListener {
             // Create notification channel for Android O+
             createNotificationChannel()
             
+            // Create notification before starting foreground service
+            val notification = createNotification()
+            android.util.Log.d("StepTrackingService", "Notification created: ID=$NOTIFICATION_ID, Channel=$CHANNEL_ID")
+            AppLogger.log("StepTrackingService", "Notification created: ID=$NOTIFICATION_ID, Channel=$CHANNEL_ID")
+            
             // Start as foreground service with health type
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     // Android 14+ requires explicit service type
-                    startForeground(NOTIFICATION_ID, createNotification(), 
+                    android.util.Log.d("StepTrackingService", "Starting foreground service (Android 14+) with health type")
+                    AppLogger.log("StepTrackingService", "Starting foreground (Android 14+) with health type")
+                    startForeground(NOTIFICATION_ID, notification, 
                         android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+                    android.util.Log.d("StepTrackingService", "✓ Foreground service started successfully (Android 14+)")
+                    AppLogger.log("StepTrackingService", "✓ Foreground started successfully!")
                 } else {
                     // Older versions
-                    startForeground(NOTIFICATION_ID, createNotification())
+                    android.util.Log.d("StepTrackingService", "Starting foreground service (Android < 14)")
+                    AppLogger.log("StepTrackingService", "Starting foreground (Android < 14)")
+                    startForeground(NOTIFICATION_ID, notification)
+                    android.util.Log.d("StepTrackingService", "✓ Foreground service started successfully (Android < 14)")
+                    AppLogger.log("StepTrackingService", "✓ Foreground started successfully!")
                 }
+            } catch (e: SecurityException) {
+                android.util.Log.e("StepTrackingService", "SecurityException starting foreground: ${e.message}", e)
+                AppLogger.log("StepTrackingService", "✗ SecurityException: ${e.message}")
+                // SecurityException usually means missing permission or service type not allowed
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    android.util.Log.e("StepTrackingService", "Android 14+ - Check if foregroundServiceType='health' is in manifest")
+                    AppLogger.log("StepTrackingService", "Android 14+ - Check manifest for foregroundServiceType='health'")
+                }
+                android.util.Log.e("StepTrackingService", "Cannot start foreground service - stopping service")
+                AppLogger.log("StepTrackingService", "Stopping service due to SecurityException")
+                stopSelf()
+                return
+            } catch (e: IllegalStateException) {
+                android.util.Log.e("StepTrackingService", "IllegalStateException starting foreground: ${e.message}", e)
+                AppLogger.log("StepTrackingService", "⚠ IllegalStateException: ${e.message}")
+                AppLogger.log("StepTrackingService", "Service may already be running")
+                // Don't stop, maybe it's already running
             } catch (e: Exception) {
                 android.util.Log.e("StepTrackingService", "Failed to start foreground: ${e.message}", e)
-                android.util.Log.e("StepTrackingService", "Stack trace: ${e.stackTraceToString()}")
+                AppLogger.log("StepTrackingService", "✗ Exception: ${e.javaClass.simpleName}: ${e.message}")
+                AppLogger.log("StepTrackingService", "Stack: ${e.stackTraceToString().take(200)}")
                 // Try without service type for older versions
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     try {
-                        startForeground(NOTIFICATION_ID, createNotification())
+                        android.util.Log.d("StepTrackingService", "Retrying without service type...")
+                        AppLogger.log("StepTrackingService", "Retrying without service type...")
+                        startForeground(NOTIFICATION_ID, notification)
                         android.util.Log.d("StepTrackingService", "Successfully started foreground without service type")
+                        AppLogger.log("StepTrackingService", "✓ Started without service type")
                     } catch (e2: Exception) {
                         android.util.Log.e("StepTrackingService", "Failed to start foreground even without service type: ${e2.message}", e2)
-                        throw e2
+                        AppLogger.log("StepTrackingService", "✗ Failed even without service type: ${e2.message}")
+                        android.util.Log.e("StepTrackingService", "Cannot start foreground service - stopping service")
+                        AppLogger.log("StepTrackingService", "Stopping service")
+                        stopSelf()
+                        return
                     }
                 } else {
-                    android.util.Log.e("StepTrackingService", "Cannot start foreground service - stopping service")
+                    android.util.Log.e("StepTrackingService", "Cannot start foreground service on Android 14+ - stopping service")
+                    AppLogger.log("StepTrackingService", "✗ Cannot start on Android 14+ - stopping")
                     stopSelf()
                     return
                 }
@@ -89,26 +128,32 @@ class StepTrackingService : Service(), SensorEventListener {
             // Start listening to sensor (only if sensor is available and permission granted)
             if (hasPermission && stepCounterSensor != null) {
                 android.util.Log.d("StepTrackingService", "Starting step tracking - permission: granted, sensor: available")
-                android.util.Log.d("StepTrackingService", "Current state - totalSteps: $totalStepCount, lastSensorValue: $lastSensorValue")
+                AppLogger.log("StepTrackingService", "✓ Permission granted, sensor available")
+                AppLogger.log("StepTrackingService", "State: steps=$totalStepCount, sensor=$lastSensorValue")
                 startStepTracking()
             } else {
                 if (!hasPermission) {
                     android.util.Log.w("StepTrackingService", "Activity Recognition permission not granted - stopping service")
+                    AppLogger.log("StepTrackingService", "✗ Permission NOT granted - stopping")
                     // Stop service if permission not granted
                     stopSelf()
                     return
                 }
                 if (stepCounterSensor == null) {
                     android.util.Log.w("StepTrackingService", "Step counter sensor not available - stopping service")
+                    AppLogger.log("StepTrackingService", "✗ Sensor NOT available - stopping")
                     // List all available sensors for debugging
                     val sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL)
                     android.util.Log.d("StepTrackingService", "Available sensors: ${sensorList.map { "${it.name} (type=${it.type})" }}")
+                    AppLogger.log("StepTrackingService", "Available sensors: ${sensorList.size} total")
                     stopSelf()
                     return
                 }
             }
         } catch (e: Exception) {
             android.util.Log.e("StepTrackingService", "Error in onCreate: ${e.message}", e)
+            AppLogger.log("StepTrackingService", "✗ Error in onCreate: ${e.javaClass.simpleName}: ${e.message}")
+            AppLogger.log("StepTrackingService", "Stack: ${e.stackTraceToString().take(200)}")
             // Stop the service if initialization fails
             stopSelf()
         }

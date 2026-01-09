@@ -259,7 +259,8 @@ class MainActivity : AppCompatActivity() {
             }
             
             android.util.Log.d("MainActivity", "Starting StepTrackingService...")
-            android.util.Log.d("MainActivity", "Permissions - ActivityRecognition: $hasActivityRecognition, Notifications: $hasNotificationPermission")
+            AppLogger.log("MainActivity", "Starting StepTrackingService...")
+            AppLogger.log("MainActivity", "Permissions - ActivityRecognition: $hasActivityRecognition, Notifications: $hasNotificationPermission")
             
             val serviceIntent = Intent(this, StepTrackingService::class.java)
             
@@ -267,24 +268,30 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(serviceIntent)
                 android.util.Log.d("MainActivity", "Called startForegroundService()")
+                AppLogger.log("MainActivity", "Called startForegroundService()")
             } else {
                 startService(serviceIntent)
                 android.util.Log.d("MainActivity", "Called startService() (pre-Android O)")
+                AppLogger.log("MainActivity", "Called startService() (pre-Android O)")
             }
             android.util.Log.d("MainActivity", "Service start requested")
+            AppLogger.log("MainActivity", "Service start requested")
         } catch (e: SecurityException) {
             // Permission denied or service type not allowed
             android.util.Log.e("MainActivity", "SecurityException starting service: ${e.message}", e)
-            android.util.Log.e("MainActivity", "Stack trace: ${e.stackTraceToString()}")
+            AppLogger.log("MainActivity", "✗ SecurityException: ${e.message}")
+            AppLogger.log("MainActivity", "Stack: ${e.stackTraceToString().take(200)}")
             Toast.makeText(this, "Cannot start step tracking: ${e.message}", Toast.LENGTH_LONG).show()
         } catch (e: IllegalStateException) {
             // Service cannot be started (might already be starting)
             android.util.Log.e("MainActivity", "IllegalStateException starting service: ${e.message}", e)
-            android.util.Log.e("MainActivity", "Stack trace: ${e.stackTraceToString()}")
+            AppLogger.log("MainActivity", "✗ IllegalStateException: ${e.message}")
+            AppLogger.log("MainActivity", "Stack: ${e.stackTraceToString().take(200)}")
         } catch (e: Exception) {
             // Other errors
             android.util.Log.e("MainActivity", "Error starting service: ${e.message}", e)
-            android.util.Log.e("MainActivity", "Stack trace: ${e.stackTraceToString()}")
+            AppLogger.log("MainActivity", "✗ Exception: ${e.javaClass.simpleName}: ${e.message}")
+            AppLogger.log("MainActivity", "Stack: ${e.stackTraceToString().take(200)}")
             Toast.makeText(this, "Error starting service: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }

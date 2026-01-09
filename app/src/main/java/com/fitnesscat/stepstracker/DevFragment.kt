@@ -11,14 +11,23 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import android.Manifest
+import java.io.File
+import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class DevFragment : Fragment() {
     
     private lateinit var devStatusText: TextView
+    private lateinit var devLogsText: TextView
+    private lateinit var saveLogsButton: Button
     
     private val mainHandler = Handler(Looper.getMainLooper())
     private var statusUpdateRunnable: Runnable? = null
@@ -36,13 +45,49 @@ class DevFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         
         devStatusText = view.findViewById(R.id.devStatusText)
+        devLogsText = view.findViewById(R.id.devLogsText)
+        saveLogsButton = view.findViewById(R.id.saveLogsButton)
+        
+        // Set up log listener to receive logs from AppLogger
+        AppLogger.setLogListener { logLine ->
+            updateLogsDisplay()
+        }
+        
+        // Set up save logs button
+        saveLogsButton.setOnClickListener {
+            saveLogsToFile()
+        }
+        
+        // Add initial log
+        addLog("DevFragment", "Fragment created")
+        
+        // Load existing logs
+        updateLogsDisplay()
         
         // Wait a bit before first check to give service time to start (avoid race condition)
         mainHandler.postDelayed({
+            addLog("DevFragment", "Starting initial status check...")
             updateDebugStatus()
             // Start periodic updates after initial check
             startStatusUpdates()
         }, 500) // 500ms delay to let service appear in running services list
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Remove log listener when fragment is destroyed
+        AppLogger.setLogListener(null)
+    }
+    
+    private fun updateLogsDisplay() {
+        mainHandler.post {
+            devLogsText.text = AppLogger.getLogs()
+            // Auto-scroll to bottom
+            devLogsText.post {
+                val scrollView = devLogsText.parent?.parent as? android.widget.ScrollView
+                scrollView?.fullScroll(android.view.View.FOCUS_DOWN)
+            }
+        }
     }
     
     override fun onResume() {
@@ -62,6 +107,7 @@ class DevFragment : Fragment() {
         statusUpdateRunnable = object : Runnable {
             override fun run() {
                 updateDebugStatus()
+                updateLogsDisplay() // Also update logs display periodically
                 statusUpdateRunnable?.let { mainHandler.postDelayed(it, STATUS_UPDATE_INTERVAL_MS) }
             }
         }
@@ -69,9 +115,16 @@ class DevFragment : Fragment() {
         statusUpdateRunnable?.let { mainHandler.postDelayed(it, STATUS_UPDATE_INTERVAL_MS) }
     }
     
+    private fun addLog(tag: String, message: String) {
+        AppLogger.log(tag, message)
+        updateLogsDisplay()
+    }
+    
     private fun updateDebugStatus() {
         val context = requireContext()
         val statusMessages = mutableListOf<String>()
+        
+        addLog("DevFragment", "Updating debug status...")
         
         // Check Activity Recognition permission
         val hasActivityRecognition = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -95,15 +148,19 @@ class DevFragment : Fragment() {
         
         if (hasActivityRecognition) {
             statusMessages.add("✓ Activity Recognition: Granted")
+            addLog("DevFragment", "Activity Recognition: ✓ Granted")
         } else {
             statusMessages.add("✗ Activity Recognition: DENIED")
+            addLog("DevFragment", "Activity Recognition: ✗ DENIED")
         }
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (hasNotificationPermission) {
                 statusMessages.add("✓ Notifications: Granted")
+                addLog("DevFragment", "Notifications: ✓ Granted")
             } else {
                 statusMessages.add("✗ Notifications: DENIED (needed for service)")
+                addLog("DevFragment", "Notifications: ✗ DENIED")
             }
         }
         
@@ -113,19 +170,41 @@ class DevFragment : Fragment() {
         
         if (stepCounterSensor != null) {
             statusMessages.add("✓ Sensor: Available")
+            addLog("DevFragment", "Sensor: ✓ Available")
         } else {
             statusMessages.add("✗ Sensor: NOT AVAILABLE")
+            addLog("DevFragment", "Sensor: ✗ NOT AVAILABLE")
         }
         
         // Check service status - use notification manager to check if foreground service is running
         // getRunningServices() is deprecated, so we check notifications instead for foreground services
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         val activeNotifications = notificationManager.activeNotifications
-        var serviceRunning = activeNotifications.any { notification ->
-            notification.id == 1 && notification.tag == null // Our service uses notification ID 1
+        
+        // Check for our service notification (ID 1, no tag)
+        var serviceRunning = false
+        var notificationFound = false
+        
+        activeNotifications.forEach { notification ->
+            android.util.Log.d("DevFragment", "Found notification: ID=${notification.id}, Tag=${notification.tag}, Channel=${notification.notification.channelId}")
+            if (notification.id == 1 && notification.tag == null) {
+                notificationFound = true
+                // Also check if it's from our app by checking the channel ID
+                if (notification.notification.channelId == "StepTrackingChannel" || 
+                    notification.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()?.contains("Step") == true) {
+                    serviceRunning = true
+                    android.util.Log.d("DevFragment", "✓ Service notification found!")
+                }
+            }
         }
         
-        // Fallback: Try deprecated method as last resort (suppress warning for now)
+        // If we found notification ID 1 but couldn't verify it's ours, still consider it running
+        if (notificationFound && !serviceRunning) {
+            serviceRunning = true
+            android.util.Log.d("DevFragment", "Notification ID 1 found, assuming service is running")
+        }
+        
+        // Fallback: Try deprecated method as last resort for older Android versions
         if (!serviceRunning && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             @Suppress("DEPRECATION")
             val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
@@ -136,11 +215,14 @@ class DevFragment : Fragment() {
             }
         }
         
-        android.util.Log.d("DevFragment", "Service running check - notification based: $serviceRunning")
+        android.util.Log.d("DevFragment", "Service running check - notification based: $serviceRunning (found notification: $notificationFound, total notifications: ${activeNotifications.size})")
+        addLog("DevFragment", "Service check: found=$serviceRunning, notifications=${activeNotifications.size}")
         
         if (serviceRunning) {
             statusMessages.add("✓ Service: Running")
+            addLog("DevFragment", "Service: ✓ Running")
         } else {
+            addLog("DevFragment", "Service: ✗ NOT RUNNING")
             statusMessages.add("✗ Service: NOT RUNNING")
             
             // Diagnostic information - why might it not be running?
@@ -151,51 +233,81 @@ class DevFragment : Fragment() {
                     statusMessages.add("⚠ Reason: Sensor NOT AVAILABLE")
                     statusMessages.add("   (Service needs sensor to run)")
                 } else {
-                    statusMessages.add("⚠ Reason: Unknown (check logs)")
+                    // All checks passed but service not running - likely failing during startup
+                    statusMessages.add("⚠ Service may be crashing on start")
+                    statusMessages.add("   Possible causes:")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        statusMessages.add("   - ForegroundServiceType issue (Android 14+)")
+                    }
+                    statusMessages.add("   - Exception in service onCreate()")
                     statusMessages.add("   Trying to restart...")
                 }
                 
                 // Try to start the service
                 try {
                     android.util.Log.d("DevFragment", "Service not running - attempting to start...")
+                    addLog("DevFragment", "Attempting to start service...")
                     mainActivity.startStepTrackingService()
+                    addLog("MainActivity", "startStepTrackingService() called")
                     
-                    // Give it a moment and check again
+                    // Give it more time and check again (service needs time to fully initialize)
                     mainHandler.postDelayed({
                         val retryNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
                         val retryActiveNotifications = retryNotificationManager.activeNotifications
+                        
+                        // Check if notification exists
                         val retryServiceRunning = retryActiveNotifications.any { notification ->
                             notification.id == 1 && notification.tag == null
                         }
+                        
+                        android.util.Log.d("DevFragment", "Retry check - Active notifications: ${retryActiveNotifications.size}")
+                        retryActiveNotifications.forEach { notification ->
+                            android.util.Log.d("DevFragment", "  Notification ID: ${notification.id}, Tag: ${notification.tag}")
+                        }
+                        
                         if (retryServiceRunning) {
-                            android.util.Log.d("DevFragment", "Service started successfully after retry")
+                            android.util.Log.d("DevFragment", "✓ Service started successfully after retry")
+                            addLog("DevFragment", "✓ Service started successfully!")
+                            statusMessages.clear()
+                            statusMessages.add("✓ Activity Recognition: Granted")
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                statusMessages.add("✓ Notifications: Granted")
+                            }
+                            statusMessages.add("✓ Sensor: Available")
+                            statusMessages.add("✓ Service: Running")
                             updateDebugStatus()
                         } else {
                             android.util.Log.w("DevFragment", "Service still not running after start attempt")
-                            // Check again why it's not running
-                            val retrySensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-                            if (retrySensor == null) {
-                                statusMessages.add("⚠ Still failing: Sensor unavailable")
-                            } else {
-                                statusMessages.add("⚠ Still failing: Check Android version")
-                                statusMessages.add("   Android: ${Build.VERSION.SDK_INT}")
-                                if (Build.VERSION.SDK_INT >= 34) {
-                                    statusMessages.add("   (Android 14+ may need foregroundServiceType)")
-                                }
+                            addLog("DevFragment", "✗ Service still NOT running after retry")
+                            statusMessages.add("")
+                            statusMessages.add("⚠ Service failed to start")
+                            statusMessages.add("   See logs below for details")
+                            
+                            // Check if there's a specific error
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                addLog("DevFragment", "Android ${Build.VERSION.SDK_INT} (Android 14+) detected")
+                                statusMessages.add("")
+                                statusMessages.add("Android ${Build.VERSION.SDK_INT} detected")
+                                statusMessages.add("Check if foregroundServiceType='health'")
+                                statusMessages.add("is in AndroidManifest.xml")
                             }
+                            
                             updateDebugStatus()
                         }
-                    }, 1500)
+                    }, 2000) // Increased to 2 seconds to give service more time
                 } catch (e: SecurityException) {
                     android.util.Log.e("DevFragment", "SecurityException: ${e.message}", e)
+                    addLog("DevFragment", "✗ SecurityException: ${e.message}")
                     statusMessages.add("⚠ Error: SecurityException")
                     statusMessages.add("   ${e.message}")
                 } catch (e: IllegalStateException) {
                     android.util.Log.e("DevFragment", "IllegalStateException: ${e.message}", e)
+                    addLog("DevFragment", "✗ IllegalStateException: ${e.message}")
                     statusMessages.add("⚠ Error: IllegalStateException")
                     statusMessages.add("   ${e.message}")
                 } catch (e: Exception) {
                     android.util.Log.e("DevFragment", "Could not restart service: ${e.message}", e)
+                    addLog("DevFragment", "✗ Exception: ${e.javaClass.simpleName}: ${e.message}")
                     statusMessages.add("⚠ Error: ${e.javaClass.simpleName}")
                     statusMessages.add("   ${e.message}")
                 }
@@ -225,6 +337,83 @@ class DevFragment : Fragment() {
             devStatusText.setTextColor(0xFFFF8800.toInt()) // Orange - waiting for sensor
         } else {
             devStatusText.setTextColor(0xFF00AA00.toInt()) // Green - all good
+        }
+    }
+    
+    private fun saveLogsToFile() {
+        try {
+            val context = requireContext()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "fitness_cat_logs_$timestamp.txt"
+            
+            // Get logs content
+            val statusText = devStatusText.text.toString()
+            val logsText = AppLogger.getLogs()
+            
+            // Combine status and logs
+            val fullContent = buildString {
+                appendLine("=== Fitness Cat Debug Logs ===")
+                appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+                appendLine("Android Version: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})")
+                appendLine("")
+                appendLine("=== Status ===")
+                appendLine(statusText)
+                appendLine("")
+                appendLine("=== Logs ===")
+                appendLine(logsText)
+            }
+            
+            // Save to app's external files directory (accessible from file manager)
+            // Path: /Android/data/com.fitnesscat.stepstracker/files/Downloads/
+            val downloadsDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            
+            if (downloadsDir != null) {
+                // Ensure directory exists
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs()
+                }
+                
+                val file = File(downloadsDir, fileName)
+                FileWriter(file).use { writer ->
+                    writer.write(fullContent)
+                }
+                
+                val filePath = file.absolutePath
+                addLog("DevFragment", "✓ Logs saved to: $filePath")
+                
+                // Show user-friendly path
+                val userPath = "Android/data/com.fitnesscat.stepstracker/files/Downloads/$fileName"
+                Toast.makeText(
+                    context,
+                    "Logs guardados:\n$fileName\n\nRuta:\n$userPath\n\n(Accesible desde explorador de archivos)",
+                    Toast.LENGTH_LONG
+                ).show()
+                
+                android.util.Log.d("DevFragment", "Logs saved to: $filePath")
+            } else {
+                // Fallback: save to app's internal storage
+                val internalFile = File(context.filesDir, fileName)
+                FileWriter(internalFile).use { writer ->
+                    writer.write(fullContent)
+                }
+                
+                val filePath = internalFile.absolutePath
+                addLog("DevFragment", "✓ Logs saved to internal storage: $filePath")
+                
+                Toast.makeText(
+                    context,
+                    "Logs guardados en almacenamiento interno:\n$fileName\n\n(No accesible desde explorador)",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DevFragment", "Error saving logs: ${e.message}", e)
+            addLog("DevFragment", "✗ Error saving logs: ${e.message}")
+            Toast.makeText(
+                requireContext(),
+                "Error al guardar logs: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 }

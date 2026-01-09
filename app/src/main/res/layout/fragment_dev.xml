@@ -19,19 +19,58 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/devStatusText"
-        android:layout_width="0dp"
+    <Button
+        android:id="@+id/saveLogsButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Estado: Esperando..."
-        android:textSize="14sp"
-        android:fontFamily="monospace"
-        android:layout_marginTop="32dp"
-        android:padding="16dp"
-        android:background="#F5F5F5"
+        android:text="Guardar logs"
+        android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/devTitleText" />
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/saveLogsButton"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/devStatusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Estado: Esperando..."
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:padding="12dp"
+                android:background="#F5F5F5"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:id="@+id/devLogsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Logs:\n(Esperando eventos...)"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:padding="12dp"
+                android:background="#000000"
+                android:textColor="#00FF00"
+                android:maxLines="50"
+                android:scrollbars="vertical" />
+
+        </LinearLayout>
+
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 
