@@ -22,6 +22,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -30,94 +33,47 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
     
-    private lateinit var stepsText: TextView
-    private lateinit var syncButton: Button
-    private lateinit var debugStatusText: TextView
-    private lateinit var stageImageView: ImageView
-    private lateinit var prevStageButton: Button
-    private lateinit var nextStageButton: Button
-    private lateinit var healthProgressBar: ProgressBar
-    private lateinit var healthValueText: TextView
-    private lateinit var increaseHealthButton: Button
-    private lateinit var decreaseHealthButton: Button
+    lateinit var userPreferences: UserPreferences
+    lateinit var stepCounter: StepCounter
+    lateinit var apiClient: ApiClient
     
-    private lateinit var userPreferences: UserPreferences
-    private lateinit var stepCounter: StepCounter
-    private lateinit var apiClient: ApiClient
+    private lateinit var tabLayout: TabLayout
+    private lateinit var viewPager: ViewPager2
     
     private val PERMISSION_REQUEST_CODE = 1001
     
-    // Current stage (1, 2, or 3)
-    private var currentStage = 1
-    private val MIN_STAGE = 1
-    private val MAX_STAGE = 3
-    
-    // Current health (0 to 100)
-    private var currentHealth = 100
-    private val MIN_HEALTH = 0
-    private val MAX_HEALTH = 100
-    
     // Handlers for periodic updates
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var stepUpdateRunnable: Runnable? = null
     private var hourlySyncRunnable: Runnable? = null
     
     // Update intervals
-    private val STEP_UPDATE_INTERVAL_MS = 2000L // Update step count every 2 seconds
     private val HOURLY_SYNC_INTERVAL_MS = 60 * 60 * 1000L // Sync every 1 hour
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         
-        // Initialize views
-        stepsText = findViewById(R.id.stepsText)
-        syncButton = findViewById(R.id.syncButton)
-        debugStatusText = findViewById(R.id.debugStatusText)
-        stageImageView = findViewById(R.id.stageImageView)
-        prevStageButton = findViewById(R.id.prevStageButton)
-        nextStageButton = findViewById(R.id.nextStageButton)
-        healthProgressBar = findViewById(R.id.healthProgressBar)
-        healthValueText = findViewById(R.id.healthValueText)
-        increaseHealthButton = findViewById(R.id.increaseHealthButton)
-        decreaseHealthButton = findViewById(R.id.decreaseHealthButton)
-        
-        // Set up sync button click listener
-        syncButton.setOnClickListener {
-            forceSyncToAPI()
-        }
-        
-        // Set up stage navigation buttons
-        prevStageButton.setOnClickListener {
-            changeStage(-1)
-        }
-        
-        nextStageButton.setOnClickListener {
-            changeStage(1)
-        }
-        
-        // Set up health navigation buttons
-        increaseHealthButton.setOnClickListener {
-            changeHealth(1)
-        }
-        
-        decreaseHealthButton.setOnClickListener {
-            changeHealth(-1)
-        }
-        
-        // Initialize stage display
-        updateStageImage()
-        
-        // Initialize health display
-        updateHealthBar()
-        
-        // Initialize helpers
+        // Initialize helpers FIRST (needed for fragments)
         userPreferences = UserPreferences(this)
         stepCounter = StepCounter(this, userPreferences)
         apiClient = ApiClient()
         
-        // Load and display initial data (before permissions)
-        loadInitialData()
+        // Initialize TabLayout and ViewPager2
+        tabLayout = findViewById(R.id.tabLayout)
+        viewPager = findViewById(R.id.viewPager)
+        
+        // Set up ViewPager adapter
+        val adapter = ViewPagerAdapter(this)
+        viewPager.adapter = adapter
+        
+        // Connect TabLayout with ViewPager2
+        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "User"
+                1 -> "Dev"
+                else -> ""
+            }
+        }.attach()
         
         // Schedule periodic step reading (every 30 minutes)
         schedulePeriodicStepReading()
@@ -297,86 +253,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupStepCounter() {
-        // Start StepCounter listener to update steps when app is open
-        // This ensures steps are updated in real-time while app is running
-        stepCounter.onStepCountChanged = { newStepCount ->
-            runOnUiThread {
-                stepsText.text = newStepCount.toString()
-                android.util.Log.d("MainActivity", "Step count updated from StepCounter: $newStepCount")
-            }
-        }
-        stepCounter.startListening()
-        android.util.Log.d("MainActivity", "StepCounter started - will track steps while app is open")
-    }
-
-    private fun loadInitialData() {
-        // Display current step count from preferences (service updates this)
-        android.util.Log.d("MainActivity", "Loading initial data...")
-        val userId = userPreferences.getUserId()
-        val currentSteps = userPreferences.getTotalStepCount()
-        val lastSensorValue = userPreferences.getLastSensorValue()
-        android.util.Log.d("MainActivity", "User ID: $userId")
-        android.util.Log.d("MainActivity", "Current step count: $currentSteps")
-        android.util.Log.d("MainActivity", "Last sensor value: $lastSensorValue")
-        refreshStepCount()
-    }
-
     override fun onResume() {
         super.onResume()
-        android.util.Log.d("MainActivity", "onResume() - refreshing step count and checking service")
+        android.util.Log.d("MainActivity", "onResume() - checking service")
         
         // Always try to start service (in case it stopped)
         startStepTrackingService()
-        
-        // Restart StepCounter listener to track steps while app is open
-        if (::stepCounter.isInitialized) {
-            stepCounter.startListening()
-            android.util.Log.d("MainActivity", "Restarted StepCounter listener")
-        }
-        
-        // Refresh step count immediately
-        refreshStepCount()
-        
-        // Wait a bit for sensor to fire initial event, then refresh again
-        mainHandler.postDelayed({
-            refreshStepCount()
-            android.util.Log.d("MainActivity", "Refreshed step count after sensor initialization")
-        }, 500)
-        
-        // Start periodic step count updates (every 2 seconds)
-        startStepCountUpdates()
         
         // Start hourly automatic sync (only while app is open)
         startHourlySync()
         
         // Sync pending batch records when app opens
         syncPendingBatchRecords()
-        
-        // Update debug status periodically
-        updateDebugStatus()
-    }
-    
-    /**
-     * Starts periodic step count updates while app is in foreground
-     */
-    private fun startStepCountUpdates() {
-        // Cancel any existing update runnable
-        stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
-        
-        // Create new runnable that updates steps and schedules itself again
-        stepUpdateRunnable = object : Runnable {
-            override fun run() {
-                refreshStepCount()
-                updateDebugStatus()
-                // Schedule next update
-                stepUpdateRunnable?.let { mainHandler.postDelayed(it, STEP_UPDATE_INTERVAL_MS) }
-            }
-        }
-        
-        // Start the periodic updates
-        stepUpdateRunnable?.let { mainHandler.postDelayed(it, STEP_UPDATE_INTERVAL_MS) }
-        android.util.Log.d("MainActivity", "Started periodic step count updates (every ${STEP_UPDATE_INTERVAL_MS}ms)")
     }
     
     /**
@@ -433,191 +321,12 @@ class MainActivity : AppCompatActivity() {
         )
     }
     
-    private fun refreshStepCount() {
-        // Read current step count from preferences (updated by service)
-        val currentSteps = userPreferences.getTotalStepCount()
-        val lastSensorValue = userPreferences.getLastSensorValue()
-        stepsText.text = currentSteps.toString()
-        android.util.Log.d("MainActivity", "Refreshed step count: $currentSteps (lastSensorValue: $lastSensorValue)")
-        
-        // Update debug status
-        updateDebugStatus()
-    }
-    
-    private fun updateDebugStatus() {
-        val statusMessages = mutableListOf<String>()
-        
-        // Check permission
-        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACTIVITY_RECOGNITION
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
-        
-        if (hasPermission) {
-            statusMessages.add("✓ Permission: Granted")
-        } else {
-            statusMessages.add("✗ Permission: DENIED")
-        }
-        
-        // Check sensor availability
-        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        val stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        
-        if (stepCounterSensor != null) {
-            statusMessages.add("✓ Sensor: Available")
-        } else {
-            statusMessages.add("✗ Sensor: NOT AVAILABLE")
-        }
-        
-        // Check service status (check if notification exists)
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        val activeNotifications = notificationManager.activeNotifications
-        val serviceRunningByNotification = activeNotifications.any { 
-            it.id == 1 && it.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.contains("Step Tracker") == true
-        }
-        
-        // Also check if service is actually running
-        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
-        val serviceActuallyRunning = runningServices.any { 
-            it.service.className == "com.fitnesscat.stepstracker.StepTrackingService"
-        }
-        
-        val serviceRunning = serviceRunningByNotification || serviceActuallyRunning
-        
-        if (serviceRunning) {
-            statusMessages.add("✓ Service: Running")
-        } else {
-            statusMessages.add("✗ Service: NOT RUNNING")
-            // Try to start it
-            startStepTrackingService()
-        }
-        
-        // Show step count info
-        val currentSteps = userPreferences.getTotalStepCount()
-        val lastSensorValue = userPreferences.getLastSensorValue()
-        statusMessages.add("Steps: $currentSteps")
-        statusMessages.add("Last Sensor: $lastSensorValue")
-        
-        // Update UI
-        debugStatusText.text = statusMessages.joinToString("\n")
-        
-        // Color code based on status
-        if (!hasPermission || stepCounterSensor == null || !serviceRunning) {
-            debugStatusText.setTextColor(0xFFFF0000.toInt()) // Red
-        } else if (lastSensorValue == 0f) {
-            debugStatusText.setTextColor(0xFFFF8800.toInt()) // Orange - waiting for sensor
-        } else {
-            debugStatusText.setTextColor(0xFF00AA00.toInt()) // Green - all good
-        }
-    }
-    
-    /**
-     * Changes the current stage by the given delta (+1 for next, -1 for previous)
-     * Ensures stage stays within bounds (1-3)
-     */
-    private fun changeStage(delta: Int) {
-        val newStage = currentStage + delta
-        
-        // Clamp stage between MIN_STAGE and MAX_STAGE
-        if (newStage < MIN_STAGE) {
-            android.util.Log.d("MainActivity", "Stage already at minimum ($MIN_STAGE)")
-            return
-        }
-        if (newStage > MAX_STAGE) {
-            android.util.Log.d("MainActivity", "Stage already at maximum ($MAX_STAGE)")
-            return
-        }
-        
-        currentStage = newStage
-        updateStageImage()
-        android.util.Log.d("MainActivity", "Changed stage to $currentStage")
-    }
-    
-    /**
-     * Updates the stage image based on currentStage
-     * Maps stage number to corresponding drawable resource
-     */
-    private fun updateStageImage() {
-        val drawableResId = when (currentStage) {
-            1 -> R.drawable.stage_1
-            2 -> R.drawable.stage_2
-            3 -> R.drawable.stage_3
-            else -> R.drawable.stage_1
-        }
-        
-        stageImageView.setImageResource(drawableResId)
-        
-        // Update button states (disable at boundaries)
-        prevStageButton.isEnabled = currentStage > MIN_STAGE
-        nextStageButton.isEnabled = currentStage < MAX_STAGE
-        
-        android.util.Log.d("MainActivity", "Updated stage image to stage_$currentStage")
-    }
-    
-    /**
-     * Changes the current health by the given delta (+1 for increase, -1 for decrease)
-     * Ensures health stays within bounds (0-100)
-     */
-    private fun changeHealth(delta: Int) {
-        val newHealth = currentHealth + delta
-        
-        // Clamp health between MIN_HEALTH and MAX_HEALTH
-        if (newHealth < MIN_HEALTH) {
-            android.util.Log.d("MainActivity", "Health already at minimum ($MIN_HEALTH)")
-            return
-        }
-        if (newHealth > MAX_HEALTH) {
-            android.util.Log.d("MainActivity", "Health already at maximum ($MAX_HEALTH)")
-            return
-        }
-        
-        currentHealth = newHealth
-        updateHealthBar()
-        android.util.Log.d("MainActivity", "Changed health to $currentHealth")
-    }
-    
-    /**
-     * Updates the health bar display and color based on currentHealth
-     * Colors:
-     * - Green: > 70
-     * - Yellow: 50-70
-     * - Orange: 25-50
-     * - Red: < 25
-     */
-    private fun updateHealthBar() {
-        // Update progress bar value
-        healthProgressBar.progress = currentHealth
-        
-        // Update text value
-        healthValueText.text = currentHealth.toString()
-        
-        // Update color based on health range
-        val colorResId = when {
-            currentHealth > 70 -> 0xFF4CAF50.toInt()  // Green
-            currentHealth >= 50 -> 0xFFFFEB3B.toInt()  // Yellow
-            currentHealth >= 25 -> 0xFFFF9800.toInt()  // Orange
-            else -> 0xFFF44336.toInt()  // Red
-        }
-        
-        healthProgressBar.progressTintList = ColorStateList.valueOf(colorResId)
-        
-        // Update button states (disable at boundaries)
-        increaseHealthButton.isEnabled = currentHealth < MAX_HEALTH
-        decreaseHealthButton.isEnabled = currentHealth > MIN_HEALTH
-        
-        android.util.Log.d("MainActivity", "Updated health bar to $currentHealth with color $colorResId")
-    }
-    
     /**
      * Forces a sync to API Gateway endpoint (bypasses rate limiting)
      * Used for manual testing via button click
+     * Made public so fragments can call it
      */
-    private fun forceSyncToAPI() {
+    fun forceSyncToAPI() {
         android.util.Log.d("MainActivity", "Manual sync triggered by button")
         
         // Get current data
@@ -752,16 +461,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Stop periodic UI updates when app goes to background
-        stepUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
         // Stop hourly sync when app goes to background (service continues counting steps)
         hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
-        // Stop StepCounter listener when app goes to background (service handles it)
-        stepCounter.stopListening()
-        android.util.Log.d("MainActivity", "Stopped UI updates, hourly sync, and StepCounter (app paused)")
-        
+        android.util.Log.d("MainActivity", "Stopped hourly sync (app paused)")
         android.util.Log.d("MainActivity", "Service continues running in background to count steps")
-        // Service continues running in background to track steps
     }
     
     override fun onStop() {

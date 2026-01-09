@@ -19,6 +19,8 @@ class UserPreferences(context: Context) {
         private const val KEY_TOTAL_STEP_COUNT = "total_step_count"  // Total steps accumulated
         private const val KEY_LAST_SENSOR_VALUE = "last_sensor_value"  // Last sensor reading
         private const val KEY_PENDING_STEP_RECORDS = "pending_step_records"  // JSON array of pending records
+        private const val KEY_CURRENT_STAGE = "current_stage"  // Current stage (1-3)
+        private const val KEY_CURRENT_HEALTH = "current_health"  // Current health (0-100)
     }
 
     fun getUserId(): String {
@@ -116,6 +118,36 @@ class UserPreferences(context: Context) {
     fun clearPendingStepRecords() {
         prefs.edit().putString(KEY_PENDING_STEP_RECORDS, "[]").apply()
         android.util.Log.d("UserPreferences", "Cleared all pending step records")
+    }
+    
+    /**
+     * Gets current stage (1-3), default is 1
+     */
+    fun getCurrentStage(): Int {
+        return prefs.getInt(KEY_CURRENT_STAGE, 1)
+    }
+    
+    /**
+     * Saves current stage (1-3)
+     */
+    fun setCurrentStage(stage: Int) {
+        prefs.edit().putInt(KEY_CURRENT_STAGE, stage).apply()
+        android.util.Log.d("UserPreferences", "Saved current stage: $stage")
+    }
+    
+    /**
+     * Gets current health (0-100), default is 100
+     */
+    fun getCurrentHealth(): Int {
+        return prefs.getInt(KEY_CURRENT_HEALTH, 100)
+    }
+    
+    /**
+     * Saves current health (0-100)
+     */
+    fun setCurrentHealth(health: Int) {
+        prefs.edit().putInt(KEY_CURRENT_HEALTH, health).apply()
+        android.util.Log.d("UserPreferences", "Saved current health: $health")
     }
 }
 
