@@ -12,12 +12,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import java.io.File
+import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * Worker that reads the step counter sensor every 30 minutes
- * and saves the current step count as a pending record for batch sync
+ * Worker that reads the step counter sensor every 1 hour
+ * and saves the current step count to a .txt file
  */
 class StepWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     
@@ -48,29 +53,46 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
             return Result.retry()
         }
         
-        // Get current timestamp in seconds (Unix timestamp)
-        val timestamp = System.currentTimeMillis() / 1000
+        // Get current timestamp
+        val timestamp = System.currentTimeMillis()
+        val timestampSeconds = timestamp / 1000
         
-        // Log before saving
-        val currentPendingCount = try {
-            val pendingJson = userPreferences.getPendingStepRecords()
-            val currentRecords = JSONArray(pendingJson)
-            currentRecords.length()
-        } catch (e: Exception) {
-            0
-        }
-        
-        Log.d(TAG, "StepWorker: About to save record (current pending count: $currentPendingCount)")
-        
-        // Save as pending record
+        // Save to .txt file
         try {
-            userPreferences.addPendingStepRecord(stepCount, timestamp)
-            Log.d(TAG, "✓ Saved step record: steps=$stepCount, timestamp=$timestamp (now ${currentPendingCount + 1} pending records)")
+            saveStepCountToFile(stepCount, timestampSeconds)
+            Log.d(TAG, "✓ Saved step count to file: steps=$stepCount, timestamp=$timestampSeconds")
             return Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Error saving step record: ${e.message}", e)
+            Log.e(TAG, "Error saving step count to file: ${e.message}", e)
             return Result.retry() // Retry if save failed
         }
+    }
+    
+    /**
+     * Saves step count to a .txt file in app's external files directory
+     * Format: timestamp,steps
+     */
+    private fun saveStepCountToFile(stepCount: Int, timestamp: Long) {
+        val context = applicationContext
+        val stepsDir = context.getExternalFilesDir("steps") ?: return
+        
+        // Ensure directory exists
+        if (!stepsDir.exists()) {
+            stepsDir.mkdirs()
+        }
+        
+        // Create filename with date (one file per day)
+        val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val dateStr = dateFormat.format(Date())
+        val filename = "steps_$dateStr.txt"
+        val file = File(stepsDir, filename)
+        
+        // Append line to file: timestamp,steps
+        FileWriter(file, true).use { writer ->
+            writer.append("$timestamp,$stepCount\n")
+        }
+        
+        Log.d(TAG, "Saved to file: ${file.absolutePath}")
     }
     
     /**

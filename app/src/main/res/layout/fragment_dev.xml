@@ -19,15 +19,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/saveLogsButton"
+    <LinearLayout
+        android:id="@+id/buttonsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Guardar logs"
+        android:orientation="horizontal"
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/devTitleText" />
+        app:layout_constraintTop_toBottomOf="@+id/devTitleText">
+
+        <Button
+            android:id="@+id/saveLogsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Guardar logs"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/exportStepsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exportar pasos" />
+
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="0dp"
@@ -35,7 +50,7 @@
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/saveLogsButton"
+        app:layout_constraintTop_toBottomOf="@+id/buttonsContainer"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout

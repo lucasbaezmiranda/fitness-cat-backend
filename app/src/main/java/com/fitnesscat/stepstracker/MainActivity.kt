@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             }
         }.attach()
         
-        // Schedule periodic step reading (every 30 minutes)
+        // Schedule periodic step reading (every 1 hour)
         schedulePeriodicStepReading()
         
         // Request permissions FIRST, then setup
@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
-     * Schedules StepWorker to run every 30 minutes to save step records
+     * Schedules StepWorker to run every 1 hour to save step records to .txt file
      * Uses minimal constraints to work on restrictive devices like Motorola
      */
     private fun schedulePeriodicStepReading() {
@@ -94,10 +94,10 @@ class MainActivity : AppCompatActivity() {
             .build()
         
         val periodicWork = PeriodicWorkRequestBuilder<StepWorker>(
-            30, TimeUnit.MINUTES
+            1, TimeUnit.HOURS
         )
             .setConstraints(constraints)
-            .setInitialDelay(5, TimeUnit.MINUTES) // Start after 5 minutes
+            .setInitialDelay(1, TimeUnit.HOURS) // Start after 1 hour
             .build()
         
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
@@ -106,7 +106,7 @@ class MainActivity : AppCompatActivity() {
             periodicWork
         )
         
-        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 30 minutes with minimal constraints")
+        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 1 hour with minimal constraints")
     }
     
     /**
@@ -306,8 +306,7 @@ class MainActivity : AppCompatActivity() {
         // Start hourly automatic sync (only while app is open)
         startHourlySync()
         
-        // Sync pending batch records when app opens
-        syncPendingBatchRecords()
+        // Note: Step files are saved hourly by StepWorker, can be exported via Dev tab
     }
     
     /**

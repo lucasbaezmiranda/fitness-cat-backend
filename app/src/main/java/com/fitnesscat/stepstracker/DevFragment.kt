@@ -29,6 +29,7 @@ class DevFragment : Fragment() {
     private lateinit var devStatusText: TextView
     private lateinit var devLogsText: TextView
     private lateinit var saveLogsButton: Button
+    private lateinit var exportStepsButton: Button
     
     private val mainHandler = Handler(Looper.getMainLooper())
     private var statusUpdateRunnable: Runnable? = null
@@ -48,6 +49,7 @@ class DevFragment : Fragment() {
         devStatusText = view.findViewById(R.id.devStatusText)
         devLogsText = view.findViewById(R.id.devLogsText)
         saveLogsButton = view.findViewById(R.id.saveLogsButton)
+        exportStepsButton = view.findViewById(R.id.exportStepsButton)
         
         // Set up log listener to receive logs from AppLogger
         AppLogger.setLogListener { logLine ->
@@ -57,6 +59,11 @@ class DevFragment : Fragment() {
         // Set up save logs button
         saveLogsButton.setOnClickListener {
             saveLogsToFile()
+        }
+        
+        // Set up export steps button
+        exportStepsButton.setOnClickListener {
+            exportStepFiles()
         }
         
         // Add initial log
@@ -412,6 +419,98 @@ class DevFragment : Fragment() {
             Toast.makeText(
                 requireContext(),
                 "Error al guardar logs: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+    
+    private fun exportStepFiles() {
+        try {
+            val context = requireContext()
+            val stepsDir = context.getExternalFilesDir("steps")
+            
+            if (stepsDir == null || !stepsDir.exists()) {
+                Toast.makeText(
+                    context,
+                    "No hay archivos de pasos para exportar",
+                    Toast.LENGTH_SHORT
+                ).show()
+                addLog("DevFragment", "No step files found")
+                return
+            }
+            
+            val stepFiles = stepsDir.listFiles()?.filter { it.name.startsWith("steps_") && it.name.endsWith(".txt") }
+            
+            if (stepFiles.isNullOrEmpty()) {
+                Toast.makeText(
+                    context,
+                    "No hay archivos de pasos para exportar",
+                    Toast.LENGTH_SHORT
+                ).show()
+                addLog("DevFragment", "No step files found")
+                return
+            }
+            
+            // Combine all step files into one
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val combinedFileName = "steps_combined_$timestamp.txt"
+            val cacheDir = context.cacheDir
+            val combinedFile = File(cacheDir, combinedFileName)
+            
+            FileWriter(combinedFile).use { writer ->
+                writer.appendLine("=== Fitness Cat Step Records ===")
+                writer.appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+                writer.appendLine("Format: timestamp,steps")
+                writer.appendLine("")
+                
+                // Sort files by name (date)
+                stepFiles.sortedBy { it.name }.forEach { file ->
+                    writer.appendLine("--- File: ${file.name} ---")
+                    file.readLines().forEach { line ->
+                        writer.appendLine(line)
+                    }
+                    writer.appendLine("")
+                }
+            }
+            
+            addLog("DevFragment", "✓ Combined ${stepFiles.size} step files into: $combinedFileName")
+            
+            // Share the combined file
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "Fitness Cat Step Records")
+                putExtra(Intent.EXTRA_TEXT, "Registros de pasos generados el ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+                
+                val fileUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    androidx.core.content.FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        combinedFile
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    android.net.Uri.fromFile(combinedFile)
+                }
+                
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            
+            val chooserIntent = Intent.createChooser(shareIntent, "Exportar pasos")
+            startActivity(chooserIntent)
+            
+            Toast.makeText(
+                context,
+                "Archivo combinado creado. Elige cómo compartirlo.",
+                Toast.LENGTH_SHORT
+            ).show()
+            
+        } catch (e: Exception) {
+            android.util.Log.e("DevFragment", "Error exporting step files: ${e.message}", e)
+            addLog("DevFragment", "✗ Error exporting steps: ${e.message}")
+            Toast.makeText(
+                requireContext(),
+                "Error al exportar pasos: ${e.message}",
                 Toast.LENGTH_SHORT
             ).show()
         }
