@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import android.Manifest
+import android.content.Intent
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -363,49 +364,48 @@ class DevFragment : Fragment() {
                 appendLine(logsText)
             }
             
-            // Save to app's external files directory (accessible from file manager)
-            // Path: /Android/data/com.fitnesscat.stepstracker/files/Downloads/
-            val downloadsDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            // Save to cache directory (accessible and can be shared)
+            val cacheDir = context.cacheDir
+            val file = File(cacheDir, fileName)
             
-            if (downloadsDir != null) {
-                // Ensure directory exists
-                if (!downloadsDir.exists()) {
-                    downloadsDir.mkdirs()
-                }
-                
-                val file = File(downloadsDir, fileName)
-                FileWriter(file).use { writer ->
-                    writer.write(fullContent)
-                }
-                
-                val filePath = file.absolutePath
-                addLog("DevFragment", "✓ Logs saved to: $filePath")
-                
-                // Show user-friendly path
-                val userPath = "Android/data/com.fitnesscat.stepstracker/files/Downloads/$fileName"
-                Toast.makeText(
-                    context,
-                    "Logs guardados:\n$fileName\n\nRuta:\n$userPath\n\n(Accesible desde explorador de archivos)",
-                    Toast.LENGTH_LONG
-                ).show()
-                
-                android.util.Log.d("DevFragment", "Logs saved to: $filePath")
-            } else {
-                // Fallback: save to app's internal storage
-                val internalFile = File(context.filesDir, fileName)
-                FileWriter(internalFile).use { writer ->
-                    writer.write(fullContent)
-                }
-                
-                val filePath = internalFile.absolutePath
-                addLog("DevFragment", "✓ Logs saved to internal storage: $filePath")
-                
-                Toast.makeText(
-                    context,
-                    "Logs guardados en almacenamiento interno:\n$fileName\n\n(No accesible desde explorador)",
-                    Toast.LENGTH_LONG
-                ).show()
+            FileWriter(file).use { writer ->
+                writer.write(fullContent)
             }
+            
+            val filePath = file.absolutePath
+            addLog("DevFragment", "✓ Logs saved to: $filePath")
+            
+            // Share the file using Intent
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "Fitness Cat Debug Logs")
+                putExtra(Intent.EXTRA_TEXT, "Logs generados el ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+                
+                // For Android 7.0+ (API 24+), use FileProvider
+                val fileUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    androidx.core.content.FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    android.net.Uri.fromFile(file)
+                }
+                
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            
+            val chooserIntent = Intent.createChooser(shareIntent, "Compartir logs")
+            startActivity(chooserIntent)
+            
+            Toast.makeText(
+                context,
+                "Archivo guardado. Elige cómo compartirlo.",
+                Toast.LENGTH_SHORT
+            ).show()
+            
         } catch (e: Exception) {
             android.util.Log.e("DevFragment", "Error saving logs: ${e.message}", e)
             addLog("DevFragment", "✗ Error saving logs: ${e.message}")
