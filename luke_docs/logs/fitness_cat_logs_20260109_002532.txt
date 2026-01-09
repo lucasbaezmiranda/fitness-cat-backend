@@ -1,0 +1,218 @@
+=== Fitness Cat Debug Logs ===
+Generated: 2026-01-09 00:25:32
+Android Version: 34 (14)
+
+=== Status ===
+✓ Activity Recognition: Granted
+✓ Notifications: Granted
+✓ Sensor: Available
+✗ Service: NOT RUNNING
+⚠ Service may be crashing on start
+   Possible causes:
+   - ForegroundServiceType issue (Android 14+)
+   - Exception in service onCreate()
+   Trying to restart...
+Last Sensor: 90581.0
+Android: 34 (14)
+
+=== Logs ===
+[30203] DevFragment: Service check: found=false, notifications=0
+[30203] DevFragment: Service: ✗ NOT RUNNING
+[30203] DevFragment: Attempting to start service...
+[30203] MainActivity: Starting StepTrackingService...
+[30203] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[30204] MainActivity: Called startForegroundService()
+[30204] MainActivity: Service start requested
+[30205] MainActivity: startStepTrackingService() called
+[30267] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[30267] StepTrackingService: Starting foreground (Android 14+) with health type
+[30268] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[30268] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[30268] StepTrackingService: Stopping service due to SecurityException
+[30305] DevFragment: ✗ Service still NOT running after retry
+[30305] DevFragment: Android 34 (Android 14+) detected
+[30305] DevFragment: Updating debug status...
+[30305] DevFragment: Activity Recognition: ✓ Granted
+[30305] DevFragment: Notifications: ✓ Granted
+[30305] DevFragment: Sensor: ✓ Available
+[30305] DevFragment: Service check: found=false, notifications=0
+[30305] DevFragment: Service: ✗ NOT RUNNING
+[30306] DevFragment: Attempting to start service...
+[30306] MainActivity: Starting StepTrackingService...
+[30306] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[30307] MainActivity: Called startForegroundService()
+[30307] MainActivity: Service start requested
+[30307] MainActivity: startStepTrackingService() called
+[30428] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[30428] StepTrackingService: Starting foreground (Android 14+) with health type
+[30428] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[30428] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[30428] StepTrackingService: Stopping service due to SecurityException
+[30553] DevFragment: ✗ Service still NOT running after retry
+[30553] DevFragment: Android 34 (Android 14+) detected
+[30553] DevFragment: Updating debug status...
+[30553] DevFragment: Activity Recognition: ✓ Granted
+[30553] DevFragment: Notifications: ✓ Granted
+[30553] DevFragment: Sensor: ✓ Available
+[30554] DevFragment: Service check: found=false, notifications=0
+[30554] DevFragment: Service: ✗ NOT RUNNING
+[30554] DevFragment: Attempting to start service...
+[30554] MainActivity: Starting StepTrackingService...
+[30554] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[30555] MainActivity: Called startForegroundService()
+[30555] MainActivity: Service start requested
+[30555] MainActivity: startStepTrackingService() called
+[30557] DevFragment: Updating debug status...
+[30557] DevFragment: Activity Recognition: ✓ Granted
+[30557] DevFragment: Notifications: ✓ Granted
+[30557] DevFragment: Sensor: ✓ Available
+[30557] DevFragment: Service check: found=false, notifications=0
+[30557] DevFragment: Service: ✗ NOT RUNNING
+[30557] DevFragment: Attempting to start service...
+[30557] MainActivity: Starting StepTrackingService...
+[30557] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[30557] MainActivity: Called startForegroundService()
+[30558] MainActivity: Service start requested
+[30558] MainActivity: startStepTrackingService() called
+[30648] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[30648] StepTrackingService: Starting foreground (Android 14+) with health type
+[30649] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[30649] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[30649] StepTrackingService: Stopping service due to SecurityException
+[30887] DevFragment: ✗ Service still NOT running after retry
+[30887] DevFragment: Android 34 (Android 14+) detected
+[30887] DevFragment: Updating debug status...
+[30887] DevFragment: Activity Recognition: ✓ Granted
+[30888] DevFragment: Notifications: ✓ Granted
+[30888] DevFragment: Sensor: ✓ Available
+[30888] DevFragment: Service check: found=false, notifications=0
+[30888] DevFragment: Service: ✗ NOT RUNNING
+[30888] DevFragment: Attempting to start service...
+[30888] MainActivity: Starting StepTrackingService...
+[30888] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[30891] MainActivity: Called startForegroundService()
+[30891] MainActivity: Service start requested
+[30891] MainActivity: startStepTrackingService() called
+[30944] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[30944] StepTrackingService: Starting foreground (Android 14+) with health type
+[30944] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[30944] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[30944] StepTrackingService: Stopping service due to SecurityException
+[31064] DevFragment: ✗ Service still NOT running after retry
+[31064] DevFragment: Android 34 (Android 14+) detected
+[31064] DevFragment: Updating debug status...
+[31064] DevFragment: Activity Recognition: ✓ Granted
+[31064] DevFragment: Notifications: ✓ Granted
+[31064] DevFragment: Sensor: ✓ Available
+[31064] DevFragment: Service check: found=false, notifications=0
+[31064] DevFragment: Service: ✗ NOT RUNNING
+[31064] DevFragment: Attempting to start service...
+[31064] MainActivity: Starting StepTrackingService...
+[31064] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31065] MainActivity: Called startForegroundService()
+[31065] MainActivity: Service start requested
+[31065] MainActivity: startStepTrackingService() called
+[31128] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[31128] StepTrackingService: Starting foreground (Android 14+) with health type
+[31128] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[31128] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[31128] StepTrackingService: Stopping service due to SecurityException
+[31211] DevFragment: ✗ Service still NOT running after retry
+[31211] DevFragment: Android 34 (Android 14+) detected
+[31211] DevFragment: Updating debug status...
+[31211] DevFragment: Activity Recognition: ✓ Granted
+[31211] DevFragment: Notifications: ✓ Granted
+[31211] DevFragment: Sensor: ✓ Available
+[31211] DevFragment: Service check: found=false, notifications=0
+[31211] DevFragment: Service: ✗ NOT RUNNING
+[31211] DevFragment: Attempting to start service...
+[31211] MainActivity: Starting StepTrackingService...
+[31211] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31212] MainActivity: Called startForegroundService()
+[31212] MainActivity: Service start requested
+[31212] MainActivity: startStepTrackingService() called
+[31275] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[31275] StepTrackingService: Starting foreground (Android 14+) with health type
+[31276] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[31276] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[31276] StepTrackingService: Stopping service due to SecurityException
+[31391] DevFragment: ✗ Service still NOT running after retry
+[31391] DevFragment: Android 34 (Android 14+) detected
+[31391] DevFragment: Updating debug status...
+[31391] DevFragment: Activity Recognition: ✓ Granted
+[31391] DevFragment: Notifications: ✓ Granted
+[31391] DevFragment: Sensor: ✓ Available
+[31391] DevFragment: Service check: found=false, notifications=0
+[31391] DevFragment: Service: ✗ NOT RUNNING
+[31392] DevFragment: Attempting to start service...
+[31392] MainActivity: Starting StepTrackingService...
+[31392] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31393] MainActivity: Called startForegroundService()
+[31393] MainActivity: Service start requested
+[31393] MainActivity: startStepTrackingService() called
+[31393] DevFragment: ✗ Service still NOT running after retry
+[31393] DevFragment: Android 34 (Android 14+) detected
+[31393] DevFragment: Updating debug status...
+[31393] DevFragment: Activity Recognition: ✓ Granted
+[31393] DevFragment: Notifications: ✓ Granted
+[31393] DevFragment: Sensor: ✓ Available
+[31393] DevFragment: Service check: found=false, notifications=0
+[31393] DevFragment: Service: ✗ NOT RUNNING
+[31393] DevFragment: Attempting to start service...
+[31393] MainActivity: Starting StepTrackingService...
+[31393] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31396] MainActivity: Called startForegroundService()
+[31396] MainActivity: Service start requested
+[31396] MainActivity: startStepTrackingService() called
+[31396] DevFragment: ✗ Service still NOT running after retry
+[31396] DevFragment: Android 34 (Android 14+) detected
+[31396] DevFragment: Updating debug status...
+[31396] DevFragment: Activity Recognition: ✓ Granted
+[31396] DevFragment: Notifications: ✓ Granted
+[31396] DevFragment: Sensor: ✓ Available
+[31396] DevFragment: Service check: found=false, notifications=0
+[31396] DevFragment: Service: ✗ NOT RUNNING
+[31396] DevFragment: Attempting to start service...
+[31396] MainActivity: Starting StepTrackingService...
+[31396] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31397] MainActivity: Called startForegroundService()
+[31397] MainActivity: Service start requested
+[31397] MainActivity: startStepTrackingService() called
+[31479] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[31479] StepTrackingService: Starting foreground (Android 14+) with health type
+[31479] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[31480] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[31480] StepTrackingService: Stopping service due to SecurityException
+[31883] DevFragment: ✗ Service still NOT running after retry
+[31883] DevFragment: Android 34 (Android 14+) detected
+[31883] DevFragment: Updating debug status...
+[31883] DevFragment: Activity Recognition: ✓ Granted
+[31883] DevFragment: Notifications: ✓ Granted
+[31883] DevFragment: Sensor: ✓ Available
+[31883] DevFragment: Service check: found=false, notifications=0
+[31883] DevFragment: Service: ✗ NOT RUNNING
+[31883] DevFragment: Attempting to start service...
+[31883] MainActivity: Starting StepTrackingService...
+[31883] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31885] MainActivity: Called startForegroundService()
+[31885] MainActivity: Service start requested
+[31885] MainActivity: startStepTrackingService() called
+[31885] DevFragment: ✗ Service still NOT running after retry
+[31885] DevFragment: Android 34 (Android 14+) detected
+[31885] DevFragment: Updating debug status...
+[31885] DevFragment: Activity Recognition: ✓ Granted
+[31885] DevFragment: Notifications: ✓ Granted
+[31885] DevFragment: Sensor: ✓ Available
+[31885] DevFragment: Service check: found=false, notifications=0
+[31885] DevFragment: Service: ✗ NOT RUNNING
+[31885] DevFragment: Attempting to start service...
+[31885] MainActivity: Starting StepTrackingService...
+[31885] MainActivity: Permissions - ActivityRecognition: true, Notifications: true
+[31886] MainActivity: Called startForegroundService()
+[31886] MainActivity: Service start requested
+[31886] MainActivity: startStepTrackingService() called
+[31940] StepTrackingService: Notification created: ID=1, Channel=StepTrackingChannel
+[31940] StepTrackingService: Starting foreground (Android 14+) with health type
+[31941] StepTrackingService: ✗ SecurityException: Starting FGS with type health callerApp=ProcessRecord{2f2f041 21272:com.fitnesscat.stepstracker/u0a472} targetSDK=34 requires permissions: all of the permissions allOf=true [android.permission.FOREGROUND_SERVICE_HEALTH] any of the permissions allOf=false [android.permission.ACTIVITY_RECOGNITION, android.permission.BODY_SENSORS, android.permission.HIGH_SAMPLING_RATE_SENSORS] 
+[31941] StepTrackingService: Android 14+ - Check manifest for foregroundServiceType='health'
+[31941] StepTrackingService: Stopping service due to SecurityException
