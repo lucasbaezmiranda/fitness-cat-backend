@@ -205,7 +205,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun startStepTrackingService() {
+    /**
+     * Starts the step tracking service
+     * Made public so fragments can trigger service restart if needed
+     */
+    fun startStepTrackingService() {
         try {
             // Check permissions first
             val hasActivityRecognition = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

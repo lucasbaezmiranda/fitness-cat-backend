@@ -36,11 +36,12 @@ class DevFragment : Fragment() {
         
         devStatusText = view.findViewById(R.id.devStatusText)
         
-        // Update status immediately
-        updateDebugStatus()
-        
-        // Start periodic updates
-        startStatusUpdates()
+        // Wait a bit before first check to give service time to start (avoid race condition)
+        mainHandler.postDelayed({
+            updateDebugStatus()
+            // Start periodic updates after initial check
+            startStatusUpdates()
+        }, 500) // 500ms delay to let service appear in running services list
     }
     
     override fun onResume() {
@@ -108,6 +109,16 @@ class DevFragment : Fragment() {
             statusMessages.add("✓ Service: Running")
         } else {
             statusMessages.add("✗ Service: NOT RUNNING")
+            // Try to start the service if it's not running
+            val mainActivity = activity as? MainActivity
+            if (mainActivity != null) {
+                try {
+                    android.util.Log.d("DevFragment", "Service not running - attempting to start...")
+                    mainActivity.startStepTrackingService()
+                } catch (e: Exception) {
+                    android.util.Log.e("DevFragment", "Could not restart service: ${e.message}")
+                }
+            }
         }
         
         // Get last sensor value
