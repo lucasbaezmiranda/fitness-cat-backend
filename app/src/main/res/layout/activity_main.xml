@@ -19,110 +19,138 @@
         app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="32dp" />
 
-    <!-- Stage row: Image on left, buttons on right -->
-    <ImageView
-        android:id="@+id/stageImageView"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
+    <!-- Main grid container (centered) -->
+    <LinearLayout
+        android:id="@+id/gridContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
         android:layout_marginTop="32dp"
-        android:contentDescription="Stage image"
-        android:scaleType="fitCenter"
-        android:src="@drawable/stage_1"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/titleText" />
+        app:layout_constraintTop_toBottomOf="@+id/titleText">
 
-    <!-- Stage buttons container (vertical) -->
-    <LinearLayout
-        android:id="@+id/stageButtonsContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginStart="16dp"
-        app:layout_constraintStart_toEndOf="@+id/stageImageView"
-        app:layout_constraintTop_toTopOf="@+id/stageImageView"
-        app:layout_constraintBottom_toBottomOf="@+id/stageImageView">
+        <!-- Stage row: Image on left, buttons on right -->
+        <LinearLayout
+            android:id="@+id/stageRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
-        <Button
-            android:id="@+id/prevStageButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="◀"
-            android:textSize="20sp"
-            android:padding="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:layout_marginBottom="8dp" />
+            <ImageView
+                android:id="@+id/stageImageView"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:contentDescription="Stage image"
+                android:scaleType="fitCenter"
+                android:src="@drawable/stage_1" />
 
-        <Button
-            android:id="@+id/nextStageButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="▶"
-            android:textSize="20sp"
-            android:padding="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp" />
+            <!-- Stage buttons container (horizontal) -->
+            <LinearLayout
+                android:id="@+id/stageButtonsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginStart="16dp">
 
-    </LinearLayout>
+                <Button
+                    android:id="@+id/prevStageButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="◀"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:layout_marginEnd="4dp" />
 
-    <!-- Health bar row: Progress bar on left, buttons on right -->
-    <ProgressBar
-        android:id="@+id/healthProgressBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="120dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="16dp"
-        android:max="100"
-        android:progress="100"
-        android:progressTint="#4CAF50"
-        app:layout_constraintStart_toStartOf="@+id/stageImageView"
-        app:layout_constraintTop_toBottomOf="@+id/stageImageView" />
+                <Button
+                    android:id="@+id/nextStageButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="▶"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
 
-    <!-- Health value text -->
-    <TextView
-        android:id="@+id/healthValueText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="100"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginTop="4dp"
-        app:layout_constraintStart_toStartOf="@+id/healthProgressBar"
-        app:layout_constraintTop_toBottomOf="@+id/healthProgressBar" />
+            </LinearLayout>
 
-    <!-- Health buttons container (vertical) -->
-    <LinearLayout
-        android:id="@+id/healthButtonsContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginStart="16dp"
-        app:layout_constraintStart_toEndOf="@+id/healthProgressBar"
-        app:layout_constraintTop_toTopOf="@+id/healthProgressBar"
-        app:layout_constraintBottom_toBottomOf="@+id/healthValueText">
+        </LinearLayout>
 
-        <Button
-            android:id="@+id/increaseHealthButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="▲"
-            android:textSize="20sp"
-            android:padding="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:layout_marginBottom="8dp" />
+        <!-- Health bar row: Progress bar on left, buttons on right -->
+        <LinearLayout
+            android:id="@+id/healthRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <Button
-            android:id="@+id/decreaseHealthButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="▼"
-            android:textSize="20sp"
-            android:padding="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp" />
+            <!-- Health bar and value container -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <ProgressBar
+                    android:id="@+id/healthProgressBar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="120dp"
+                    android:layout_height="32dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressTint="#4CAF50" />
+
+                <!-- Health value text -->
+                <TextView
+                    android:id="@+id/healthValueText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="100"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+            <!-- Health buttons container (horizontal) -->
+            <LinearLayout
+                android:id="@+id/healthButtonsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginStart="16dp">
+
+                <Button
+                    android:id="@+id/increaseHealthButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="▲"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/decreaseHealthButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="▼"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -135,7 +163,7 @@
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/healthValueText" />
+        app:layout_constraintTop_toBottomOf="@+id/gridContainer" />
 
     <TextView
         android:id="@+id/stepsText"
