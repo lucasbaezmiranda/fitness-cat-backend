@@ -8,10 +8,6 @@ import android.hardware.SensorManager
 import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
