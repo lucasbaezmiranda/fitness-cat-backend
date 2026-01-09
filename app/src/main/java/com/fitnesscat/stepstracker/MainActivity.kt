@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.net.Uri
@@ -14,6 +15,8 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -30,12 +33,29 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stepsText: TextView
     private lateinit var syncButton: Button
     private lateinit var debugStatusText: TextView
+    private lateinit var stageImageView: ImageView
+    private lateinit var prevStageButton: Button
+    private lateinit var nextStageButton: Button
+    private lateinit var healthProgressBar: ProgressBar
+    private lateinit var healthValueText: TextView
+    private lateinit var increaseHealthButton: Button
+    private lateinit var decreaseHealthButton: Button
     
     private lateinit var userPreferences: UserPreferences
     private lateinit var stepCounter: StepCounter
     private lateinit var apiClient: ApiClient
     
     private val PERMISSION_REQUEST_CODE = 1001
+    
+    // Current stage (1, 2, or 3)
+    private var currentStage = 1
+    private val MIN_STAGE = 1
+    private val MAX_STAGE = 3
+    
+    // Current health (0 to 100)
+    private var currentHealth = 100
+    private val MIN_HEALTH = 0
+    private val MAX_HEALTH = 100
     
     // Handlers for periodic updates
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -54,11 +74,42 @@ class MainActivity : AppCompatActivity() {
         stepsText = findViewById(R.id.stepsText)
         syncButton = findViewById(R.id.syncButton)
         debugStatusText = findViewById(R.id.debugStatusText)
+        stageImageView = findViewById(R.id.stageImageView)
+        prevStageButton = findViewById(R.id.prevStageButton)
+        nextStageButton = findViewById(R.id.nextStageButton)
+        healthProgressBar = findViewById(R.id.healthProgressBar)
+        healthValueText = findViewById(R.id.healthValueText)
+        increaseHealthButton = findViewById(R.id.increaseHealthButton)
+        decreaseHealthButton = findViewById(R.id.decreaseHealthButton)
         
         // Set up sync button click listener
         syncButton.setOnClickListener {
             forceSyncToAPI()
         }
+        
+        // Set up stage navigation buttons
+        prevStageButton.setOnClickListener {
+            changeStage(-1)
+        }
+        
+        nextStageButton.setOnClickListener {
+            changeStage(1)
+        }
+        
+        // Set up health navigation buttons
+        increaseHealthButton.setOnClickListener {
+            changeHealth(1)
+        }
+        
+        decreaseHealthButton.setOnClickListener {
+            changeHealth(-1)
+        }
+        
+        // Initialize stage display
+        updateStageImage()
+        
+        // Initialize health display
+        updateHealthBar()
         
         // Initialize helpers
         userPreferences = UserPreferences(this)
@@ -339,7 +390,7 @@ class MainActivity : AppCompatActivity() {
         hourlySyncRunnable = object : Runnable {
             override fun run() {
                 android.util.Log.d("MainActivity", "Hourly sync triggered")
-                syncStepsToAPI()
+        syncStepsToAPI()
                 // Schedule next hourly sync (only if app is still active)
                 hourlySyncRunnable?.let { mainHandler.postDelayed(it, HOURLY_SYNC_INTERVAL_MS) }
             }
@@ -466,6 +517,103 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
+     * Changes the current stage by the given delta (+1 for next, -1 for previous)
+     * Ensures stage stays within bounds (1-3)
+     */
+    private fun changeStage(delta: Int) {
+        val newStage = currentStage + delta
+        
+        // Clamp stage between MIN_STAGE and MAX_STAGE
+        if (newStage < MIN_STAGE) {
+            android.util.Log.d("MainActivity", "Stage already at minimum ($MIN_STAGE)")
+            return
+        }
+        if (newStage > MAX_STAGE) {
+            android.util.Log.d("MainActivity", "Stage already at maximum ($MAX_STAGE)")
+            return
+        }
+        
+        currentStage = newStage
+        updateStageImage()
+        android.util.Log.d("MainActivity", "Changed stage to $currentStage")
+    }
+    
+    /**
+     * Updates the stage image based on currentStage
+     * Maps stage number to corresponding drawable resource
+     */
+    private fun updateStageImage() {
+        val drawableResId = when (currentStage) {
+            1 -> R.drawable.stage_1
+            2 -> R.drawable.stage_2
+            3 -> R.drawable.stage_3
+            else -> R.drawable.stage_1
+        }
+        
+        stageImageView.setImageResource(drawableResId)
+        
+        // Update button states (disable at boundaries)
+        prevStageButton.isEnabled = currentStage > MIN_STAGE
+        nextStageButton.isEnabled = currentStage < MAX_STAGE
+        
+        android.util.Log.d("MainActivity", "Updated stage image to stage_$currentStage")
+    }
+    
+    /**
+     * Changes the current health by the given delta (+1 for increase, -1 for decrease)
+     * Ensures health stays within bounds (0-100)
+     */
+    private fun changeHealth(delta: Int) {
+        val newHealth = currentHealth + delta
+        
+        // Clamp health between MIN_HEALTH and MAX_HEALTH
+        if (newHealth < MIN_HEALTH) {
+            android.util.Log.d("MainActivity", "Health already at minimum ($MIN_HEALTH)")
+            return
+        }
+        if (newHealth > MAX_HEALTH) {
+            android.util.Log.d("MainActivity", "Health already at maximum ($MAX_HEALTH)")
+            return
+        }
+        
+        currentHealth = newHealth
+        updateHealthBar()
+        android.util.Log.d("MainActivity", "Changed health to $currentHealth")
+    }
+    
+    /**
+     * Updates the health bar display and color based on currentHealth
+     * Colors:
+     * - Green: > 70
+     * - Yellow: 50-70
+     * - Orange: 25-50
+     * - Red: < 25
+     */
+    private fun updateHealthBar() {
+        // Update progress bar value
+        healthProgressBar.progress = currentHealth
+        
+        // Update text value
+        healthValueText.text = currentHealth.toString()
+        
+        // Update color based on health range
+        val colorResId = when {
+            currentHealth > 70 -> 0xFF4CAF50.toInt()  // Green
+            currentHealth >= 50 -> 0xFFFFEB3B.toInt()  // Yellow
+            currentHealth >= 25 -> 0xFFFF9800.toInt()  // Orange
+            else -> 0xFFF44336.toInt()  // Red
+        }
+        
+        healthProgressBar.progressTintList = ColorStateList.valueOf(colorResId)
+        
+        // Update button states (disable at boundaries)
+        increaseHealthButton.isEnabled = currentHealth < MAX_HEALTH
+        decreaseHealthButton.isEnabled = currentHealth > MIN_HEALTH
+        
+        android.util.Log.d("MainActivity", "Updated health bar to $currentHealth with color $colorResId")
+    }
+    
+    /**
      * Forces a sync to API Gateway endpoint (bypasses rate limiting)
      * Used for manual testing via button click
      */
@@ -584,11 +732,11 @@ class MainActivity : AppCompatActivity() {
             timestamp = timestamp,
             callback = { success, errorMessage ->
                 runOnUiThread {
-                    if (success) {
-                        // Update last sync timestamp on success
-                        userPreferences.setLastSyncTimestamp(timestamp)
+                if (success) {
+                    // Update last sync timestamp on success
+                    userPreferences.setLastSyncTimestamp(timestamp)
                         android.util.Log.d("MainActivity", "✓ Successfully synced $stepCount steps (automatic)")
-                    } else {
+                } else {
                         // Show error to user so they know sync failed
                         android.util.Log.e("MainActivity", "✗ Failed to sync steps (automatic): $errorMessage")
                         Toast.makeText(
