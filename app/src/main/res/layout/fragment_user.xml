@@ -7,6 +7,18 @@
     android:padding="16dp"
     tools:context=".UserFragment">
 
+    <!-- Background ImageView (behind all content) -->
+    <ImageView
+        android:id="@+id/backgroundImageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="Background"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Main grid container (centered) -->
     <LinearLayout
         android:id="@+id/gridContainer"
@@ -17,7 +29,8 @@
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/backgroundImageView">
 
         <!-- Stage row: Image on left, buttons on right -->
         <LinearLayout
@@ -198,7 +211,7 @@
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/stepsText" />
+        app:layout_constraintTop_toBottomOf="@+id/activityText" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 

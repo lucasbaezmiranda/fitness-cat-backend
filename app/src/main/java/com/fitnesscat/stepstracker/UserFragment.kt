@@ -17,6 +17,7 @@ import androidx.fragment.app.Fragment
 
 class UserFragment : Fragment() {
     
+    private lateinit var backgroundImageView: ImageView
     private lateinit var stepsText: TextView
     private lateinit var activityText: TextView
     private lateinit var syncButton: Button
@@ -31,10 +32,10 @@ class UserFragment : Fragment() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var stepUpdateRunnable: Runnable? = null
     
-    // Current stage (1, 2, or 3)
+    // Current stage (1, 2, 3, 4, or 5)
     private var currentStage = 1
     private val MIN_STAGE = 1
-    private val MAX_STAGE = 3
+    private val MAX_STAGE = 5
     
     // Current health (0 to 100)
     private var currentHealth = 100
@@ -56,6 +57,7 @@ class UserFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         
         // Initialize views
+        backgroundImageView = view.findViewById(R.id.backgroundImageView)
         stepsText = view.findViewById(R.id.stepsText)
         activityText = view.findViewById(R.id.activityText)
         syncButton = view.findViewById(R.id.syncButton)
@@ -99,6 +101,7 @@ class UserFragment : Fragment() {
         // Update UI with loaded values
         updateStageImage()
         updateHealthBar()
+        updateBackground()
         
         // Load and display current activity
         refreshActivity(mainActivity)
@@ -113,6 +116,7 @@ class UserFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val mainActivity = activity as? MainActivity
+        updateBackground() // Update background in case time changed
         refreshActivity(mainActivity)
         refreshStepCount(mainActivity)
         startStepCountUpdates(mainActivity)
@@ -164,6 +168,8 @@ class UserFragment : Fragment() {
             1 -> R.drawable.stage_1
             2 -> R.drawable.stage_2
             3 -> R.drawable.stage_3
+            4 -> R.drawable.stage_4
+            5 -> R.drawable.stage_5
             else -> R.drawable.stage_1
         }
         
@@ -220,6 +226,28 @@ class UserFragment : Fragment() {
             activityText.text = activityName
             android.util.Log.d("UserFragment", "Updated activity: $activityName ($confidence%)")
         }
+    }
+    
+    /**
+     * Updates the background image based on time of day
+     * Day: 6 AM - 8 PM (background_day.jpg)
+     * Night: 8 PM - 6 AM (background_night.jpg)
+     */
+    private fun updateBackground() {
+        val calendar = java.util.Calendar.getInstance()
+        val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        
+        // Day: 6 AM to 8 PM (6-20), Night: 8 PM to 6 AM (20-6)
+        val isDay = hour >= 6 && hour < 20
+        
+        val backgroundResId = if (isDay) {
+            R.drawable.background_day
+        } else {
+            R.drawable.background_night
+        }
+        
+        backgroundImageView.setImageResource(backgroundResId)
+        android.util.Log.d("UserFragment", "Updated background: ${if (isDay) "Day" else "Night"} (hour: $hour)")
     }
 }
 

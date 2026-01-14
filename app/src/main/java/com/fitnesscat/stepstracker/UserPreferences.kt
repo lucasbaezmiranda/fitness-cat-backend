@@ -123,14 +123,14 @@ class UserPreferences(context: Context) {
     }
     
     /**
-     * Gets current stage (1-3), default is 1
+     * Gets current stage (1-5), default is 1
      */
     fun getCurrentStage(): Int {
         return prefs.getInt(KEY_CURRENT_STAGE, 1)
     }
     
     /**
-     * Saves current stage (1-3)
+     * Saves current stage (1-5)
      */
     fun setCurrentStage(stage: Int) {
         prefs.edit().putInt(KEY_CURRENT_STAGE, stage).apply()
