@@ -15,24 +15,31 @@ class ActivityRecognitionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (ActivityRecognitionResult.hasResult(intent)) {
             val result = ActivityRecognitionResult.extractResult(intent)
-            val mostProbableActivity = result.mostProbableActivity
             
-            val activityType = mostProbableActivity.type
-            val confidence = mostProbableActivity.confidence
-            
-            // Get activity name
-            val activityName = getActivityName(activityType)
-            
-            Log.d("ActivityRecognition", "Detected activity: $activityName (confidence: $confidence%)")
-            AppLogger.log("ActivityRecognition", "Activity: $activityName ($confidence%)")
-            
-            // Save to UserPreferences
-            val userPreferences = UserPreferences(context)
-            userPreferences.setCurrentActivity(activityType, activityName)
-            
-            // Notify MainActivity if it's available
-            val mainActivity = MainActivity.instance
-            mainActivity?.onActivityDetected(activityName, confidence)
+            // Check if result is not null
+            if (result != null) {
+                val mostProbableActivity = result.mostProbableActivity
+                
+                val activityType = mostProbableActivity.type
+                val confidence = mostProbableActivity.confidence
+                
+                // Get activity name
+                val activityName = getActivityName(activityType)
+                
+                Log.d("ActivityRecognition", "Detected activity: $activityName (confidence: $confidence%)")
+                AppLogger.log("ActivityRecognition", "Activity: $activityName ($confidence%)")
+                
+                // Save to UserPreferences
+                val userPreferences = UserPreferences(context)
+                userPreferences.setCurrentActivity(activityType, activityName)
+                
+                // Notify MainActivity if it's available
+                val mainActivity = MainActivity.instance
+                mainActivity?.onActivityDetected(activityName, confidence)
+            } else {
+                Log.w("ActivityRecognition", "ActivityRecognitionResult.extractResult() returned null")
+                AppLogger.log("ActivityRecognition", "⚠ Result is null")
+            }
         }
     }
     
