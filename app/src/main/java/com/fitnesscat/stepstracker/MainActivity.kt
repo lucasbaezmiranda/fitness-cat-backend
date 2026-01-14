@@ -25,8 +25,18 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.google.android.gms.location.ActivityRecognition
+import com.google.android.gms.location.ActivityRecognitionClient
+import android.app.PendingIntent
 import java.util.concurrent.TimeUnit
+
 class MainActivity : AppCompatActivity() {
+    
+    companion object {
+        @Volatile
+        var instance: MainActivity? = null
+            private set
+    }
     
     lateinit var userPreferences: UserPreferences
     lateinit var stepCounter: StepCounter
@@ -35,7 +45,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     
+    private lateinit var activityRecognitionClient: ActivityRecognitionClient
+    
     private val PERMISSION_REQUEST_CODE = 1001
+    private val ACTIVITY_RECOGNITION_REQUEST_CODE = 1002
     
     // Handlers for periodic updates
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -48,10 +61,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         
+        // Set instance for ActivityRecognitionReceiver
+        instance = this
+        
         // Initialize helpers FIRST (needed for fragments)
         userPreferences = UserPreferences(this)
         stepCounter = StepCounter(this, userPreferences)
         apiClient = ApiClient()
+        
+        // Initialize Activity Recognition Client
+        activityRecognitionClient = ActivityRecognition.getClient(this)
         
         // Initialize TabLayout and ViewPager2
         tabLayout = findViewById(R.id.tabLayout)
@@ -177,6 +196,9 @@ class MainActivity : AppCompatActivity() {
             android.util.Log.d("MainActivity", "All permissions already granted - starting service")
             startStepTrackingService()
             
+            // Start activity recognition
+            requestGoogleActivityRecognition()
+            
             // Also retry after 2 seconds to ensure service starts (in case of timing issues)
             mainHandler.postDelayed({
                 android.util.Log.d("MainActivity", "Retrying service start after 2 seconds (already had permissions)...")
@@ -204,6 +226,9 @@ class MainActivity : AppCompatActivity() {
                 android.util.Log.d("MainActivity", "All permissions granted - starting service")
                 // Try to start service immediately
                 startStepTrackingService()
+                
+                // Start activity recognition
+                requestGoogleActivityRecognition()
                 
                 // Also retry after 2 seconds to ensure service starts (in case of timing issues)
                 mainHandler.postDelayed({
@@ -521,8 +546,96 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         // Clean up handlers
         hourlySyncRunnable?.let { mainHandler.removeCallbacks(it) }
+        
+        // Clear instance
+        instance = null
+        
+        // Remove activity recognition updates
+        try {
+            val intent = Intent(this, ActivityRecognitionReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            activityRecognitionClient.removeActivityUpdates(pendingIntent)
+            android.util.Log.d("MainActivity", "Removed activity recognition updates")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error removing activity recognition: ${e.message}", e)
+        }
+        
         android.util.Log.d("MainActivity", "Cleaned up handlers (app destroyed)")
         // Service continues running in background to track steps
+    }
+    
+    /**
+     * Requests Google Activity Recognition updates
+     * Updates will be received every 30 seconds via ActivityRecognitionReceiver
+     * Note: Google Activity Recognition permission is automatically granted if Google Play Services is installed
+     */
+    private fun requestGoogleActivityRecognition() {
+        try {
+            val intent = Intent(this, ActivityRecognitionReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            
+            // Request activity updates every 30 seconds
+            val task = activityRecognitionClient.requestActivityUpdates(
+                30000, // 30 seconds
+                pendingIntent
+            )
+            
+            task.addOnSuccessListener {
+                android.util.Log.d("MainActivity", "✓ Activity Recognition started successfully")
+                AppLogger.log("MainActivity", "✓ Activity Recognition started (updates every 30s)")
+            }
+            
+            task.addOnFailureListener { e ->
+                android.util.Log.e("MainActivity", "✗ Failed to start Activity Recognition: ${e.message}", e)
+                AppLogger.log("MainActivity", "✗ Activity Recognition failed: ${e.message}")
+                // Common causes: Google Play Services not available, permission denied, or device doesn't support it
+                if (e.message?.contains("permission") == true) {
+                    AppLogger.log("MainActivity", "Note: Google Activity Recognition requires Google Play Services")
+                }
+            }
+        } catch (e: SecurityException) {
+            android.util.Log.e("MainActivity", "SecurityException starting Activity Recognition: ${e.message}", e)
+            AppLogger.log("MainActivity", "✗ SecurityException: ${e.message}")
+            AppLogger.log("MainActivity", "Note: Ensure Google Play Services is installed and up to date")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error starting Activity Recognition: ${e.message}", e)
+            AppLogger.log("MainActivity", "✗ Error: ${e.message}")
+        }
+    }
+    
+    /**
+     * Called by ActivityRecognitionReceiver when a new activity is detected
+     * Updates the UI if UserFragment is visible
+     */
+    fun onActivityDetected(activityName: String, confidence: Int) {
+        runOnUiThread {
+            // Find UserFragment in the fragment manager
+            val userFragment = supportFragmentManager.fragments
+                .find { it is UserFragment } as? UserFragment
+            
+            userFragment?.updateActivity(activityName, confidence)
+            
+            // Also try to find it in ViewPager fragments
+            if (userFragment == null) {
+                try {
+                    val adapter = viewPager.adapter as? ViewPagerAdapter
+                    // ViewPager2 doesn't expose fragments directly, so we'll rely on UserFragment
+                    // reading from UserPreferences in onResume
+                } catch (e: Exception) {
+                    android.util.Log.w("MainActivity", "Could not find UserFragment: ${e.message}")
+                }
+            }
+        }
     }
 }
 

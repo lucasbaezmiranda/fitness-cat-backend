@@ -21,6 +21,8 @@ class UserPreferences(context: Context) {
         private const val KEY_PENDING_STEP_RECORDS = "pending_step_records"  // JSON array of pending records
         private const val KEY_CURRENT_STAGE = "current_stage"  // Current stage (1-3)
         private const val KEY_CURRENT_HEALTH = "current_health"  // Current health (0-100)
+        private const val KEY_CURRENT_ACTIVITY_TYPE = "current_activity_type"  // Activity type constant
+        private const val KEY_CURRENT_ACTIVITY_NAME = "current_activity_name"  // Activity name (human-readable)
     }
 
     fun getUserId(): String {
@@ -148,6 +150,31 @@ class UserPreferences(context: Context) {
     fun setCurrentHealth(health: Int) {
         prefs.edit().putInt(KEY_CURRENT_HEALTH, health).apply()
         android.util.Log.d("UserPreferences", "Saved current health: $health")
+    }
+    
+    /**
+     * Gets current activity type (constant from DetectedActivity)
+     */
+    fun getCurrentActivityType(): Int {
+        return prefs.getInt(KEY_CURRENT_ACTIVITY_TYPE, com.google.android.gms.location.DetectedActivity.UNKNOWN)
+    }
+    
+    /**
+     * Gets current activity name (human-readable)
+     */
+    fun getCurrentActivityName(): String {
+        return prefs.getString(KEY_CURRENT_ACTIVITY_NAME, "Desconocido") ?: "Desconocido"
+    }
+    
+    /**
+     * Saves current activity (type and name)
+     */
+    fun setCurrentActivity(activityType: Int, activityName: String) {
+        prefs.edit()
+            .putInt(KEY_CURRENT_ACTIVITY_TYPE, activityType)
+            .putString(KEY_CURRENT_ACTIVITY_NAME, activityName)
+            .apply()
+        android.util.Log.d("UserPreferences", "Saved current activity: $activityName (type: $activityType)")
     }
 }
 

@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment
 class UserFragment : Fragment() {
     
     private lateinit var stepsText: TextView
+    private lateinit var activityText: TextView
     private lateinit var syncButton: Button
     private lateinit var stageImageView: ImageView
     private lateinit var prevStageButton: Button
@@ -56,6 +57,7 @@ class UserFragment : Fragment() {
         
         // Initialize views
         stepsText = view.findViewById(R.id.stepsText)
+        activityText = view.findViewById(R.id.activityText)
         syncButton = view.findViewById(R.id.syncButton)
         stageImageView = view.findViewById(R.id.stageImageView)
         prevStageButton = view.findViewById(R.id.prevStageButton)
@@ -98,6 +100,9 @@ class UserFragment : Fragment() {
         updateStageImage()
         updateHealthBar()
         
+        // Load and display current activity
+        refreshActivity(mainActivity)
+        
         // Refresh step count
         refreshStepCount(mainActivity)
         
@@ -108,6 +113,7 @@ class UserFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val mainActivity = activity as? MainActivity
+        refreshActivity(mainActivity)
         refreshStepCount(mainActivity)
         startStepCountUpdates(mainActivity)
     }
@@ -193,6 +199,27 @@ class UserFragment : Fragment() {
         healthProgressBar.progressTintList = ColorStateList.valueOf(colorResId)
         increaseHealthButton.isEnabled = currentHealth < MAX_HEALTH
         decreaseHealthButton.isEnabled = currentHealth > MIN_HEALTH
+    }
+    
+    /**
+     * Refreshes the activity display from UserPreferences
+     */
+    private fun refreshActivity(mainActivity: MainActivity?) {
+        mainActivity?.let {
+            val activityName = it.userPreferences.getCurrentActivityName()
+            activityText.text = activityName
+            android.util.Log.d("UserFragment", "Refreshed activity: $activityName")
+        }
+    }
+    
+    /**
+     * Updates the activity display (called from MainActivity when new activity is detected)
+     */
+    fun updateActivity(activityName: String, confidence: Int) {
+        mainHandler.post {
+            activityText.text = activityName
+            android.util.Log.d("UserFragment", "Updated activity: $activityName ($confidence%)")
+        }
     }
 }
 
