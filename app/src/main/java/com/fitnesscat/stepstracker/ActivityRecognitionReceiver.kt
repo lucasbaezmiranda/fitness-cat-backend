@@ -29,13 +29,11 @@ class ActivityRecognitionReceiver : BroadcastReceiver() {
                 Log.d("ActivityRecognition", "Detected activity: $activityName (confidence: $confidence%)")
                 AppLogger.log("ActivityRecognition", "Activity: $activityName ($confidence%)")
                 
-                // Save to UserPreferences
+                // Save to UserPreferences (legacy - no longer used but kept for backwards compatibility)
                 val userPreferences = UserPreferences(context)
                 userPreferences.setCurrentActivity(activityType, activityName)
                 
-                // Notify MainActivity if it's available
-                val mainActivity = MainActivity.instance
-                mainActivity?.onActivityDetected(activityName, confidence)
+                // Note: Activity Recognition has been replaced with GPS location tracking
             } else {
                 Log.w("ActivityRecognition", "ActivityRecognitionResult.extractResult() returned null")
                 AppLogger.log("ActivityRecognition", "⚠ Result is null")
