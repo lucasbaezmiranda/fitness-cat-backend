@@ -18,8 +18,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -40,7 +38,6 @@ class MainActivity : AppCompatActivity() {
     lateinit var stepCounter: StepCounter
     lateinit var apiClient: ApiClient
     
-    private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     
     private val PERMISSION_REQUEST_CODE = 1001
@@ -65,16 +62,12 @@ class MainActivity : AppCompatActivity() {
         stepCounter = StepCounter(this, userPreferences)
         apiClient = ApiClient()
         
-        // Initialize TabLayout and ViewPager2
-        tabLayout = findViewById(R.id.tabLayout)
+        // Initialize ViewPager2
         viewPager = findViewById(R.id.viewPager)
         
         // Set up ViewPager adapter
         val adapter = ViewPagerAdapter(this)
         viewPager.adapter = adapter
-        
-        // Hide TabLayout since we only have one fragment now
-        tabLayout.visibility = android.view.View.GONE
         
         // Schedule periodic step reading (every 1 hour)
         schedulePeriodicStepReading()
@@ -159,6 +152,23 @@ class MainActivity : AppCompatActivity() {
             ) {
                 permissionsToRequest.add(Manifest.permission.ACTIVITY_RECOGNITION)
             }
+        }
+        
+        // Location permissions for GPS
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
         
         // Notification permission (for foreground service on Android 13+)
