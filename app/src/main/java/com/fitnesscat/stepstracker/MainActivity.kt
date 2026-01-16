@@ -80,14 +80,8 @@ class MainActivity : AppCompatActivity() {
         val adapter = ViewPagerAdapter(this)
         viewPager.adapter = adapter
         
-        // Connect TabLayout with ViewPager2
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "User"
-                1 -> "Dev"
-                else -> ""
-            }
-        }.attach()
+        // Hide TabLayout since we only have one fragment now
+        tabLayout.visibility = android.view.View.GONE
         
         // Schedule periodic step reading (every 1 hour)
         schedulePeriodicStepReading()

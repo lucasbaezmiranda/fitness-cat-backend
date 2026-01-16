@@ -4,10 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
     tools:context=".UserFragment">
 
-    <!-- Background ImageView (behind all content) -->
+    <!-- Background ImageView (behind all content, full screen) -->
     <ImageView
         android:id="@+id/backgroundImageView"
         android:layout_width="match_parent"
@@ -26,6 +25,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
+        android:padding="16dp"
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -161,6 +161,8 @@
         android:layout_height="wrap_content"
         android:text="Pasos de hoy"
         android:textSize="20sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -174,6 +176,8 @@
         android:textSize="48sp"
         android:textStyle="bold"
         android:textColor="#2196F3"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -185,6 +189,8 @@
         android:layout_height="wrap_content"
         android:text="Actividad actual"
         android:textSize="16sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:layout_marginTop="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -198,6 +204,8 @@
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#4CAF50"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -208,7 +216,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Sincronizar ahora"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:layout_marginTop="32dp"
+        android:layout_marginBottom="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/activityText" />
