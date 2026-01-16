@@ -53,10 +53,14 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         val timestamp = System.currentTimeMillis()
         val timestampSeconds = timestamp / 1000
         
-        // Save to .txt file
+        // Get current GPS location
+        val locationHelper = LocationHelper(applicationContext)
+        val (latitude, longitude) = locationHelper.getCurrentLocationSync()
+        
+        // Save to .txt file (with coordinates if available)
         try {
-            saveStepCountToFile(stepCount, timestampSeconds)
-            Log.d(TAG, "✓ Saved step count to file: steps=$stepCount, timestamp=$timestampSeconds")
+            saveStepCountToFile(stepCount, timestampSeconds, latitude, longitude)
+            Log.d(TAG, "✓ Saved step count to file: steps=$stepCount, timestamp=$timestampSeconds, lat=$latitude, lng=$longitude")
             return Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Error saving step count to file: ${e.message}", e)
@@ -65,10 +69,10 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
     }
     
     /**
-     * Saves step count to a .txt file in app's external files directory
-     * Format: timestamp,steps
+     * Saves step count and coordinates to a .txt file in app's external files directory
+     * Format: timestamp,steps,latitude,longitude
      */
-    private fun saveStepCountToFile(stepCount: Int, timestamp: Long) {
+    private fun saveStepCountToFile(stepCount: Int, timestamp: Long, latitude: Double?, longitude: Double?) {
         val context = applicationContext
         val stepsDir = context.getExternalFilesDir("steps") ?: return
         
@@ -83,9 +87,13 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         val filename = "steps_$dateStr.txt"
         val file = File(stepsDir, filename)
         
-        // Append line to file: timestamp,steps
+        // Format coordinates (use empty string if null)
+        val latStr = latitude?.toString() ?: ""
+        val lonStr = longitude?.toString() ?: ""
+        
+        // Append line to file: timestamp,steps,latitude,longitude
         FileWriter(file, true).use { writer ->
-            writer.append("$timestamp,$stepCount\n")
+            writer.append("$timestamp,$stepCount,$latStr,$lonStr\n")
         }
         
         Log.d(TAG, "Saved to file: ${file.absolutePath}")

@@ -90,13 +90,24 @@ class UserPreferences(context: Context) {
      * Adds a new step record to pending records (as JSON string)
      * @param stepsAtTime Steps count at this timestamp
      * @param timestamp Unix timestamp in seconds
+     * @param latitude GPS latitude (optional, can be null)
+     * @param longitude GPS longitude (optional, can be null)
      */
-    fun addPendingStepRecord(stepsAtTime: Int, timestamp: Long) {
+    fun addPendingStepRecord(stepsAtTime: Int, timestamp: Long, latitude: Double? = null, longitude: Double? = null) {
         try {
             val pendingJson = getPendingStepRecords()
             
             // Construir nuevo record como string JSON
-            val newRecord = "{\"steps_at_time\":$stepsAtTime,\"timestamp\":$timestamp}"
+            val coordinateStr = buildString {
+                if (latitude != null) {
+                    append(",\"latitude\":$latitude")
+                }
+                if (longitude != null) {
+                    append(",\"longitude\":$longitude")
+                }
+            }
+            
+            val newRecord = "{\"steps_at_time\":$stepsAtTime,\"timestamp\":$timestamp$coordinateStr}"
             
             // Si está vacío, crear array nuevo, sino agregar al existente
             val updatedJson = if (pendingJson == "[]") {
@@ -107,7 +118,7 @@ class UserPreferences(context: Context) {
             }
             
             savePendingStepRecords(updatedJson)
-            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp")
+            android.util.Log.d("UserPreferences", "Added pending record: steps=$stepsAtTime, timestamp=$timestamp, lat=$latitude, lng=$longitude")
             android.util.Log.d("UserPreferences", "Updated JSON: $updatedJson")
         } catch (e: Exception) {
             android.util.Log.e("UserPreferences", "Error adding pending record: ${e.message}", e)

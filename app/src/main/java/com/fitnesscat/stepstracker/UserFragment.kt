@@ -19,15 +19,13 @@ class UserFragment : Fragment() {
     
     private lateinit var backgroundImageView: ImageView
     private lateinit var stepsText: TextView
-    private lateinit var activityText: TextView
+    private lateinit var locationText: TextView
     private lateinit var syncButton: Button
     private lateinit var stageImageView: ImageView
     private lateinit var prevStageButton: Button
     private lateinit var nextStageButton: Button
     private lateinit var healthProgressBar: ProgressBar
     private lateinit var healthValueText: TextView
-    private lateinit var increaseHealthButton: Button
-    private lateinit var decreaseHealthButton: Button
     
     private val mainHandler = Handler(Looper.getMainLooper())
     private var stepUpdateRunnable: Runnable? = null
@@ -59,15 +57,13 @@ class UserFragment : Fragment() {
         // Initialize views
         backgroundImageView = view.findViewById(R.id.backgroundImageView)
         stepsText = view.findViewById(R.id.stepsText)
-        activityText = view.findViewById(R.id.activityText)
+        locationText = view.findViewById(R.id.locationText)
         syncButton = view.findViewById(R.id.syncButton)
         stageImageView = view.findViewById(R.id.stageImageView)
         prevStageButton = view.findViewById(R.id.prevStageButton)
         nextStageButton = view.findViewById(R.id.nextStageButton)
         healthProgressBar = view.findViewById(R.id.healthProgressBar)
         healthValueText = view.findViewById(R.id.healthValueText)
-        increaseHealthButton = view.findViewById(R.id.increaseHealthButton)
-        decreaseHealthButton = view.findViewById(R.id.decreaseHealthButton)
         
         // Get MainActivity to access shared objects
         val mainActivity = activity as? MainActivity
@@ -90,21 +86,13 @@ class UserFragment : Fragment() {
             changeStage(1, mainActivity)
         }
         
-        increaseHealthButton.setOnClickListener {
-            changeHealth(1, mainActivity)
-        }
-        
-        decreaseHealthButton.setOnClickListener {
-            changeHealth(-1, mainActivity)
-        }
-        
         // Update UI with loaded values
         updateStageImage()
         updateHealthBar()
         updateBackground()
         
-        // Load and display current activity
-        refreshActivity(mainActivity)
+        // Load and display current location
+        refreshLocation()
         
         // Refresh step count
         refreshStepCount(mainActivity)
@@ -117,7 +105,7 @@ class UserFragment : Fragment() {
         super.onResume()
         val mainActivity = activity as? MainActivity
         updateBackground() // Update background in case time changed
-        refreshActivity(mainActivity)
+        refreshLocation() // Update location
         refreshStepCount(mainActivity)
         startStepCountUpdates(mainActivity)
     }
@@ -203,28 +191,31 @@ class UserFragment : Fragment() {
         }
         
         healthProgressBar.progressTintList = ColorStateList.valueOf(colorResId)
-        increaseHealthButton.isEnabled = currentHealth < MAX_HEALTH
-        decreaseHealthButton.isEnabled = currentHealth > MIN_HEALTH
     }
     
     /**
      * Refreshes the activity display from UserPreferences
      */
-    private fun refreshActivity(mainActivity: MainActivity?) {
-        mainActivity?.let {
-            val activityName = it.userPreferences.getCurrentActivityName()
-            activityText.text = activityName
-            android.util.Log.d("UserFragment", "Refreshed activity: $activityName")
-        }
-    }
-    
     /**
-     * Updates the activity display (called from MainActivity when new activity is detected)
+     * Gets and displays current GPS location
      */
-    fun updateActivity(activityName: String, confidence: Int) {
-        mainHandler.post {
-            activityText.text = activityName
-            android.util.Log.d("UserFragment", "Updated activity: $activityName ($confidence%)")
+    private fun refreshLocation() {
+        context?.let { ctx ->
+            val locationHelper = LocationHelper(ctx)
+            locationHelper.getCurrentLocation { latitude, longitude ->
+                mainHandler.post {
+                    if (latitude != null && longitude != null) {
+                        // Format coordinates to 6 decimal places (~1 meter accuracy)
+                        val latStr = String.format("%.6f", latitude)
+                        val lonStr = String.format("%.6f", longitude)
+                        locationText.text = "$latStr, $lonStr"
+                        android.util.Log.d("UserFragment", "Updated location: lat=$latStr, lng=$lonStr")
+                    } else {
+                        locationText.text = "Ubicación no disponible"
+                        android.util.Log.w("UserFragment", "Location not available")
+                    }
+                }
+            }
         }
     }
     

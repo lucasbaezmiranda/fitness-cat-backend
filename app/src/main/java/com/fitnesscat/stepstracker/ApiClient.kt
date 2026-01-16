@@ -45,12 +45,16 @@ class ApiClient {
      * @param userId User ID from UserPreferences
      * @param stepCount Current total step count
      * @param timestamp Current timestamp in milliseconds
+     * @param latitude GPS latitude (optional)
+     * @param longitude GPS longitude (optional)
      * @param callback Optional callback to handle success/failure
      */
     fun syncSteps(
         userId: String,
         stepCount: Int,
         timestamp: Long,
+        latitude: Double? = null,
+        longitude: Double? = null,
         callback: ((Boolean, String?) -> Unit)? = null
     ) {
         // Check if endpoint is configured
@@ -71,6 +75,8 @@ class ApiClient {
                     put("user_id", userId)
                     put("steps", stepCount)
                     put("timestamp", timestampSeconds)
+                    if (latitude != null) put("latitude", latitude)
+                    if (longitude != null) put("longitude", longitude)
                 }
                 
                 val mediaType = "application/json; charset=utf-8".toMediaType()

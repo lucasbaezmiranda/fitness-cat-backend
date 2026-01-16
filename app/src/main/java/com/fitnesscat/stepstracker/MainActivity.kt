@@ -362,12 +362,17 @@ class MainActivity : AppCompatActivity() {
         val stepCount = userPreferences.getTotalStepCount()
         val timestamp = System.currentTimeMillis()
         
-        // Sync to API (no rate limiting)
-        apiClient.syncSteps(
-            userId = userId,
-            stepCount = stepCount,
-            timestamp = timestamp,
-            callback = { success, errorMessage ->
+        // Get current GPS location
+        val locationHelper = LocationHelper(this)
+        locationHelper.getCurrentLocation { latitude, longitude ->
+            // Sync to API (no rate limiting)
+            apiClient.syncSteps(
+                userId = userId,
+                stepCount = stepCount,
+                timestamp = timestamp,
+                latitude = latitude,
+                longitude = longitude,
+                callback = { success, errorMessage ->
                 runOnUiThread {
                     if (success) {
                         // Update last sync timestamp on success
@@ -379,7 +384,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-        )
+            )
+        }
     }
     
     /**
@@ -398,12 +404,17 @@ class MainActivity : AppCompatActivity() {
         // Show loading toast
         Toast.makeText(this, "Syncing to API...", Toast.LENGTH_SHORT).show()
         
-        // Sync to API (bypass rate limiting)
-        apiClient.syncSteps(
-            userId = userId,
-            stepCount = stepCount,
-            timestamp = timestamp,
-            callback = { success, errorMessage ->
+        // Get current GPS location
+        val locationHelper = LocationHelper(this)
+        locationHelper.getCurrentLocation { latitude, longitude ->
+            // Sync to API (bypass rate limiting)
+            apiClient.syncSteps(
+                userId = userId,
+                stepCount = stepCount,
+                timestamp = timestamp,
+                latitude = latitude,
+                longitude = longitude,
+                callback = { success, errorMessage ->
                 runOnUiThread {
                     if (success) {
                         // Update last sync timestamp on success
@@ -495,12 +506,17 @@ class MainActivity : AppCompatActivity() {
         val stepCount = userPreferences.getTotalStepCount()
         val timestamp = System.currentTimeMillis()
         
-        // Sync to API
-        apiClient.syncSteps(
-            userId = userId,
-            stepCount = stepCount,
-            timestamp = timestamp,
-            callback = { success, errorMessage ->
+        // Get current GPS location
+        val locationHelper = LocationHelper(this)
+        locationHelper.getCurrentLocation { latitude, longitude ->
+            // Sync to API
+            apiClient.syncSteps(
+                userId = userId,
+                stepCount = stepCount,
+                timestamp = timestamp,
+                latitude = latitude,
+                longitude = longitude,
+                callback = { success, errorMessage ->
                 runOnUiThread {
                 if (success) {
                     // Update last sync timestamp on success
