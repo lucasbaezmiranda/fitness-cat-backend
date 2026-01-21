@@ -62,7 +62,7 @@ class LeaderboardFragment : Fragment() {
         val userPreferences = activity.userPreferences
         
         // Get current user steps
-        val userSteps = userPreferences.getTodaySteps().toFloat()
+        val userSteps = userPreferences.getTotalStepCount().toFloat()
         
         // Calculate friend steps (70% and 50% of user steps)
         val amigo1Steps = (userSteps * 0.7f).toInt()
