@@ -18,6 +18,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -39,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var apiClient: ApiClient
     
     private lateinit var viewPager: ViewPager2
+    private lateinit var tabLayout: TabLayout
     
     private val PERMISSION_REQUEST_CODE = 1001
     private val ACTIVITY_RECOGNITION_REQUEST_CODE = 1002
@@ -54,6 +57,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         
+        // Hide ActionBar if it exists
+        supportActionBar?.hide()
+        
         // Set instance for ActivityRecognitionReceiver
         instance = this
         
@@ -62,12 +68,22 @@ class MainActivity : AppCompatActivity() {
         stepCounter = StepCounter(this, userPreferences)
         apiClient = ApiClient()
         
-        // Initialize ViewPager2
+        // Initialize ViewPager2 and TabLayout
         viewPager = findViewById(R.id.viewPager)
+        tabLayout = findViewById(R.id.tabLayout)
         
         // Set up ViewPager adapter
         val adapter = ViewPagerAdapter(this)
         viewPager.adapter = adapter
+        
+        // Connect TabLayout with ViewPager2
+        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "Gato"
+                1 -> "Leaderboard"
+                else -> ""
+            }
+        }.attach()
         
         // Schedule periodic step reading (every 1 hour)
         schedulePeriodicStepReading()
