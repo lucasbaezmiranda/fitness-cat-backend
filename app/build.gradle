@@ -60,6 +60,9 @@ dependencies {
     // Fragment for tabs
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
     
+    // CardView for leaderboard cards
+    implementation 'androidx.cardview:cardview:1.0.0'
+    
     // Google Play Services Location (for Activity Recognition)
     implementation 'com.google.android.gms:play-services-location:21.0.1'
     
