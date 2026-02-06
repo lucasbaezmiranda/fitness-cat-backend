@@ -78,6 +78,23 @@ class CustomizationFragment : Fragment() {
         android.util.Log.d("CustomizationFragment", "Fragment setup complete")
     }
     
+    override fun onResume() {
+        super.onResume()
+        android.util.Log.d("CustomizationFragment", "onResume called")
+        
+        // Reload skin in case it was changed elsewhere
+        val mainActivity = activity as? MainActivity
+        mainActivity?.let {
+            val savedSkin = it.userPreferences.getSelectedSkin()
+            if (savedSkin != currentSkin) {
+                android.util.Log.d("CustomizationFragment", "Skin changed externally: $currentSkin -> $savedSkin")
+                currentSkin = savedSkin
+                updateCatImage()
+                updateSkinInfo()
+            }
+        }
+    }
+    
     private fun changeSkin(delta: Int) {
         val newSkin = currentSkin + delta
         
