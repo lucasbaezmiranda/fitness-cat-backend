@@ -43,85 +43,89 @@ class CustomizationFragment : Fragment() {
         skinNameText = view.findViewById(R.id.skinNameText)
         selectButton = view.findViewById(R.id.selectButton)
         
+        android.util.Log.d("CustomizationFragment", "Views initialized")
+        
         // Get MainActivity to access shared objects
         val mainActivity = activity as? MainActivity
         if (mainActivity != null) {
             // Load saved skin
             currentSkin = mainActivity.userPreferences.getSelectedSkin()
+            android.util.Log.d("CustomizationFragment", "Loaded skin from preferences: $currentSkin")
+        } else {
+            android.util.Log.w("CustomizationFragment", "MainActivity is null!")
         }
         
         // Set up button listeners
         prevSkinButton.setOnClickListener {
+            android.util.Log.d("CustomizationFragment", "Prev button clicked, currentSkin: $currentSkin")
             changeSkin(-1)
         }
         
         nextSkinButton.setOnClickListener {
+            android.util.Log.d("CustomizationFragment", "Next button clicked, currentSkin: $currentSkin")
             changeSkin(1)
         }
         
         selectButton.setOnClickListener {
+            android.util.Log.d("CustomizationFragment", "Select button clicked")
             saveSelectedSkin(mainActivity)
         }
         
         // Update UI with loaded values
         updateCatImage()
         updateSkinInfo()
+        
+        android.util.Log.d("CustomizationFragment", "Fragment setup complete")
     }
     
     private fun changeSkin(delta: Int) {
         val newSkin = currentSkin + delta
         
+        android.util.Log.d("CustomizationFragment", "changeSkin called: delta=$delta, currentSkin=$currentSkin, newSkin=$newSkin")
+        
         if (newSkin < MIN_SKIN || newSkin > MAX_SKIN) {
+            android.util.Log.w("CustomizationFragment", "Skin out of bounds: $newSkin (min=$MIN_SKIN, max=$MAX_SKIN)")
             return
         }
         
         currentSkin = newSkin
+        android.util.Log.d("CustomizationFragment", "Updated currentSkin to: $currentSkin")
         updateCatImage()
         updateSkinInfo()
         android.util.Log.d("CustomizationFragment", "Changed skin to $currentSkin")
     }
     
     private fun updateCatImage() {
+        android.util.Log.d("CustomizationFragment", "updateCatImage called: currentSkin=$currentSkin, PREVIEW_STAGE=$PREVIEW_STAGE")
+        
         // Show stage 3a (PREVIEW_STAGE) of the current skin
-        val drawableResId = when {
-            currentSkin == 0 -> when (PREVIEW_STAGE) {
-                1 -> R.drawable.cat_0_stage_1
-                2 -> R.drawable.cat_0_stage_2
-                3 -> R.drawable.cat_0_stage_3
-                4 -> R.drawable.cat_0_stage_4
-                5 -> R.drawable.cat_0_stage_5
-                else -> R.drawable.cat_0_stage_3
+        val drawableResId = when (currentSkin) {
+            0 -> R.drawable.cat_0_stage_3
+            1 -> R.drawable.cat_1_stage_3
+            2 -> R.drawable.cat_2_stage_3
+            3 -> R.drawable.cat_3_stage_3
+            else -> {
+                android.util.Log.w("CustomizationFragment", "Unknown skin: $currentSkin, using default")
+                R.drawable.cat_0_stage_3
             }
-            currentSkin == 1 -> when (PREVIEW_STAGE) {
-                1 -> R.drawable.cat_1_stage_1
-                2 -> R.drawable.cat_1_stage_2
-                3 -> R.drawable.cat_1_stage_3
-                4 -> R.drawable.cat_1_stage_4
-                5 -> R.drawable.cat_1_stage_5
-                else -> R.drawable.cat_1_stage_3
-            }
-            currentSkin == 2 -> when (PREVIEW_STAGE) {
-                1 -> R.drawable.cat_2_stage_1
-                2 -> R.drawable.cat_2_stage_2
-                3 -> R.drawable.cat_2_stage_3
-                4 -> R.drawable.cat_2_stage_4
-                5 -> R.drawable.cat_2_stage_5
-                else -> R.drawable.cat_2_stage_3
-            }
-            currentSkin == 3 -> when (PREVIEW_STAGE) {
-                1 -> R.drawable.cat_3_stage_1
-                2 -> R.drawable.cat_3_stage_2
-                3 -> R.drawable.cat_3_stage_3
-                4 -> R.drawable.cat_3_stage_4
-                5 -> R.drawable.cat_3_stage_5
-                else -> R.drawable.cat_3_stage_3
-            }
-            else -> R.drawable.cat_0_stage_3
         }
         
-        catImageView.setImageResource(drawableResId)
-        prevSkinButton.isEnabled = currentSkin > MIN_SKIN
-        nextSkinButton.isEnabled = currentSkin < MAX_SKIN
+        android.util.Log.d("CustomizationFragment", "Setting drawable resource: $drawableResId")
+        
+        try {
+            catImageView.setImageResource(drawableResId)
+            android.util.Log.d("CustomizationFragment", "Image resource set successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("CustomizationFragment", "Error setting image resource: ${e.message}", e)
+        }
+        
+        // Update button states
+        val prevEnabled = currentSkin > MIN_SKIN
+        val nextEnabled = currentSkin < MAX_SKIN
+        prevSkinButton.isEnabled = prevEnabled
+        nextSkinButton.isEnabled = nextEnabled
+        
+        android.util.Log.d("CustomizationFragment", "Button states: prevEnabled=$prevEnabled, nextEnabled=$nextEnabled")
     }
     
     private fun updateSkinInfo() {
