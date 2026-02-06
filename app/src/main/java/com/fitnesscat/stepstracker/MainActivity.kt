@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var stepCounter: StepCounter
     lateinit var apiClient: ApiClient
     
-    private lateinit var viewPager: ViewPager2
+    lateinit var viewPager: ViewPager2
     private lateinit var tabLayout: TabLayout
     
     private val PERMISSION_REQUEST_CODE = 1001
