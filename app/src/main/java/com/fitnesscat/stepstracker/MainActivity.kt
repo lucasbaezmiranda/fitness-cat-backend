@@ -83,6 +83,7 @@ class MainActivity : AppCompatActivity() {
                 1 -> "Leaderboard"
                 2 -> "Personalización"
                 3 -> "Dev"
+                4 -> "Mis datos"
                 else -> ""
             }
         }.attach()

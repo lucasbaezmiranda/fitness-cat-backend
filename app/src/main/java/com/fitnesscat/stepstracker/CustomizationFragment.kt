@@ -12,12 +12,11 @@ import androidx.fragment.app.Fragment
 class CustomizationFragment : Fragment() {
     
     private lateinit var catImageView: ImageView
-    private lateinit var estilo1Button: Button
-    private lateinit var estilo2Button: Button
-    private lateinit var estilo3Button: Button
-    private lateinit var estilo4Button: Button
+    private lateinit var prevSkinButton: Button
+    private lateinit var nextSkinButton: Button
     private lateinit var skinNameText: TextView
     private lateinit var selectButton: Button
+    private lateinit var myDataButton: Button
     
     private var currentSkin = 0
     private val MIN_SKIN = 0
@@ -40,12 +39,11 @@ class CustomizationFragment : Fragment() {
         
         // Initialize views
         catImageView = view.findViewById(R.id.catImageView)
-        estilo1Button = view.findViewById(R.id.estilo1Button)
-        estilo2Button = view.findViewById(R.id.estilo2Button)
-        estilo3Button = view.findViewById(R.id.estilo3Button)
-        estilo4Button = view.findViewById(R.id.estilo4Button)
+        prevSkinButton = view.findViewById(R.id.prevSkinButton)
+        nextSkinButton = view.findViewById(R.id.nextSkinButton)
         skinNameText = view.findViewById(R.id.skinNameText)
         selectButton = view.findViewById(R.id.selectButton)
+        myDataButton = view.findViewById(R.id.myDataButton)
         
         AppLogger.log("CustomizationFragment", "Views initialized")
         
@@ -59,30 +57,25 @@ class CustomizationFragment : Fragment() {
             AppLogger.log("CustomizationFragment", "⚠ MainActivity is null!")
         }
         
-        // Set up button listeners
-        estilo1Button.setOnClickListener {
-            AppLogger.log("CustomizationFragment", "▶ Estilo 1 button clicked")
-            selectSkin(0)
+        // Set up button listeners for carousel navigation
+        prevSkinButton.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Prev button clicked, currentSkin: $currentSkin")
+            changeSkin(-1)
         }
         
-        estilo2Button.setOnClickListener {
-            AppLogger.log("CustomizationFragment", "▶ Estilo 2 button clicked")
-            selectSkin(1)
-        }
-        
-        estilo3Button.setOnClickListener {
-            AppLogger.log("CustomizationFragment", "▶ Estilo 3 button clicked")
-            selectSkin(2)
-        }
-        
-        estilo4Button.setOnClickListener {
-            AppLogger.log("CustomizationFragment", "▶ Estilo 4 button clicked")
-            selectSkin(3)
+        nextSkinButton.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Next button clicked, currentSkin: $currentSkin")
+            changeSkin(1)
         }
         
         selectButton.setOnClickListener {
             AppLogger.log("CustomizationFragment", "▶ Select button clicked")
             saveSelectedSkin(mainActivity)
+        }
+        
+        myDataButton.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Mis datos button clicked")
+            navigateToUserData()
         }
         
         // Update UI with loaded values
@@ -108,24 +101,29 @@ class CustomizationFragment : Fragment() {
                 updateSkinInfo()
                 updateButtonStates()
             }
-        }
     }
     
-    private fun selectSkin(skin: Int) {
-        AppLogger.log("CustomizationFragment", "selectSkin called: skin=$skin")
+    private fun changeSkin(delta: Int) {
+        val newSkin = currentSkin + delta
         
-        if (skin < MIN_SKIN || skin > MAX_SKIN) {
-            AppLogger.log("CustomizationFragment", "✗ Skin out of bounds: $skin (min=$MIN_SKIN, max=$MAX_SKIN)")
-            return
+        AppLogger.log("CustomizationFragment", "changeSkin called: delta=$delta, currentSkin=$currentSkin, newSkin=$newSkin")
+        
+        // Circular carousel: wrap around
+        val finalSkin = when {
+            newSkin < MIN_SKIN -> MAX_SKIN // Go to last if before first
+            newSkin > MAX_SKIN -> MIN_SKIN // Go to first if after last
+            else -> newSkin
         }
         
-        currentSkin = skin
-        AppLogger.log("CustomizationFragment", "Updated currentSkin to: $currentSkin")
+        currentSkin = finalSkin
+        AppLogger.log("CustomizationFragment", "Updated currentSkin to: $currentSkin (circular navigation)")
         updateCatImage()
         updateSkinInfo()
         updateButtonStates()
         AppLogger.log("CustomizationFragment", "✓ Changed skin to $currentSkin")
+        }
     }
+    
     
     private fun updateCatImage() {
         AppLogger.log("CustomizationFragment", "updateCatImage called: currentSkin=$currentSkin, PREVIEW_STAGE=$PREVIEW_STAGE")
@@ -156,13 +154,13 @@ class CustomizationFragment : Fragment() {
     }
     
     private fun updateButtonStates() {
-        // Highlight the currently selected button
-        estilo1Button.isSelected = (currentSkin == 0)
-        estilo2Button.isSelected = (currentSkin == 1)
-        estilo3Button.isSelected = (currentSkin == 2)
-        estilo4Button.isSelected = (currentSkin == 3)
+        // Both arrows are always enabled in circular carousel mode
+        // But we can disable them if you want non-circular behavior
+        // For now, keeping them always enabled for circular carousel
+        prevSkinButton.isEnabled = true
+        nextSkinButton.isEnabled = true
         
-        AppLogger.log("CustomizationFragment", "Button states updated: currentSkin=$currentSkin")
+        AppLogger.log("CustomizationFragment", "Button states updated: currentSkin=$currentSkin (circular carousel)")
     }
     
     private fun updateSkinInfo() {
@@ -192,6 +190,17 @@ class CustomizationFragment : Fragment() {
             // The UserFragment will update on next resume
         } ?: run {
             AppLogger.log("CustomizationFragment", "✗ Cannot save skin: MainActivity is null")
+        }
+    }
+    
+    private fun navigateToUserData() {
+        val mainActivity = activity as? MainActivity
+        mainActivity?.let {
+            // Navigate to UserDataFragment tab (position 4)
+            it.viewPager.currentItem = 4
+            AppLogger.log("CustomizationFragment", "✓ Navigated to UserDataFragment")
+        } ?: run {
+            AppLogger.log("CustomizationFragment", "✗ Cannot navigate: MainActivity is null")
         }
     }
 }

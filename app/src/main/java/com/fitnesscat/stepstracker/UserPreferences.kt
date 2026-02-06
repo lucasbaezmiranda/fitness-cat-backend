@@ -24,6 +24,10 @@ class UserPreferences(context: Context) {
         private const val KEY_CURRENT_ACTIVITY_TYPE = "current_activity_type"  // Activity type constant
         private const val KEY_CURRENT_ACTIVITY_NAME = "current_activity_name"  // Activity name (human-readable)
         private const val KEY_SELECTED_SKIN = "selected_skin"  // Selected cat skin (0-3)
+        private const val KEY_NICKNAME = "nickname"  // User nickname
+        private const val KEY_AGE = "age"  // User age
+        private const val KEY_GENDER = "gender"  // User gender
+        private const val KEY_LOCATION = "location"  // User location
     }
 
     fun getUserId(): String {
@@ -202,6 +206,67 @@ class UserPreferences(context: Context) {
     fun setSelectedSkin(skin: Int) {
         prefs.edit().putInt(KEY_SELECTED_SKIN, skin).apply()
         android.util.Log.d("UserPreferences", "Saved selected skin: $skin")
+    }
+    
+    /**
+     * Gets user nickname
+     */
+    fun getNickname(): String? {
+        return prefs.getString(KEY_NICKNAME, null)
+    }
+    
+    /**
+     * Saves user nickname
+     */
+    fun setNickname(nickname: String?) {
+        prefs.edit().putString(KEY_NICKNAME, nickname).apply()
+        android.util.Log.d("UserPreferences", "Saved nickname: $nickname")
+    }
+    
+    /**
+     * Gets user age
+     */
+    fun getAge(): Int? {
+        val age = prefs.getInt(KEY_AGE, -1)
+        return if (age >= 0) age else null
+    }
+    
+    /**
+     * Saves user age
+     */
+    fun setAge(age: Int?) {
+        prefs.edit().putInt(KEY_AGE, age ?: -1).apply()
+        android.util.Log.d("UserPreferences", "Saved age: $age")
+    }
+    
+    /**
+     * Gets user gender
+     */
+    fun getGender(): String? {
+        return prefs.getString(KEY_GENDER, null)
+    }
+    
+    /**
+     * Saves user gender
+     */
+    fun setGender(gender: String?) {
+        prefs.edit().putString(KEY_GENDER, gender).apply()
+        android.util.Log.d("UserPreferences", "Saved gender: $gender")
+    }
+    
+    /**
+     * Gets user location
+     */
+    fun getLocation(): String? {
+        return prefs.getString(KEY_LOCATION, null)
+    }
+    
+    /**
+     * Saves user location
+     */
+    fun setLocation(location: String?) {
+        prefs.edit().putString(KEY_LOCATION, location).apply()
+        android.util.Log.d("UserPreferences", "Saved location: $location")
     }
 }
 
