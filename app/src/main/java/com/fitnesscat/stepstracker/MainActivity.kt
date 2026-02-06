@@ -81,6 +81,7 @@ class MainActivity : AppCompatActivity() {
             tab.text = when (position) {
                 0 -> "Gato"
                 1 -> "Leaderboard"
+                2 -> "Personalización"
                 else -> ""
             }
         }.attach()

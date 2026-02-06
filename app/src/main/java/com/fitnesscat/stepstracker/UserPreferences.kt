@@ -19,10 +19,11 @@ class UserPreferences(context: Context) {
         private const val KEY_TOTAL_STEP_COUNT = "total_step_count"  // Total steps accumulated
         private const val KEY_LAST_SENSOR_VALUE = "last_sensor_value"  // Last sensor reading
         private const val KEY_PENDING_STEP_RECORDS = "pending_step_records"  // JSON array of pending records
-        private const val KEY_CURRENT_STAGE = "current_stage"  // Current stage (1-3)
+        private const val KEY_CURRENT_STAGE = "current_stage"  // Current stage (1-5)
         private const val KEY_CURRENT_HEALTH = "current_health"  // Current health (0-100)
         private const val KEY_CURRENT_ACTIVITY_TYPE = "current_activity_type"  // Activity type constant
         private const val KEY_CURRENT_ACTIVITY_NAME = "current_activity_name"  // Activity name (human-readable)
+        private const val KEY_SELECTED_SKIN = "selected_skin"  // Selected cat skin (0-3)
     }
 
     fun getUserId(): String {
@@ -186,6 +187,21 @@ class UserPreferences(context: Context) {
             .putString(KEY_CURRENT_ACTIVITY_NAME, activityName)
             .apply()
         android.util.Log.d("UserPreferences", "Saved current activity: $activityName (type: $activityType)")
+    }
+    
+    /**
+     * Gets selected cat skin (0-3), default is 0
+     */
+    fun getSelectedSkin(): Int {
+        return prefs.getInt(KEY_SELECTED_SKIN, 0)
+    }
+    
+    /**
+     * Saves selected cat skin (0-3)
+     */
+    fun setSelectedSkin(skin: Int) {
+        prefs.edit().putInt(KEY_SELECTED_SKIN, skin).apply()
+        android.util.Log.d("UserPreferences", "Saved selected skin: $skin")
     }
 }
 

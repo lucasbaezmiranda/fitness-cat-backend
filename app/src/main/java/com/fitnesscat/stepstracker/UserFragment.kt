@@ -35,6 +35,9 @@ class UserFragment : Fragment() {
     private val MIN_STAGE = 1
     private val MAX_STAGE = 5
     
+    // Current selected skin (0, 1, 2, or 3)
+    private var currentSkin = 0
+    
     // Current health (0 to 100)
     private var currentHealth = 100
     private val MIN_HEALTH = 0
@@ -68,9 +71,10 @@ class UserFragment : Fragment() {
         // Get MainActivity to access shared objects
         val mainActivity = activity as? MainActivity
         if (mainActivity != null) {
-            // Load saved stage and health
+            // Load saved stage, health, and skin
             currentStage = mainActivity.userPreferences.getCurrentStage()
             currentHealth = mainActivity.userPreferences.getCurrentHealth()
+            currentSkin = mainActivity.userPreferences.getSelectedSkin()
         }
         
         // Set up button listeners
@@ -104,10 +108,15 @@ class UserFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val mainActivity = activity as? MainActivity
+        // Reload skin in case it was changed in CustomizationFragment
+        mainActivity?.let {
+            currentSkin = it.userPreferences.getSelectedSkin()
+        }
         updateBackground() // Update background in case time changed
         refreshLocation() // Update location
         refreshStepCount(mainActivity)
         startStepCountUpdates(mainActivity)
+        updateStageImage() // Update stage image with current skin
     }
     
     override fun onPause() {
@@ -152,13 +161,47 @@ class UserFragment : Fragment() {
     }
     
     private fun updateStageImage() {
-        val drawableResId = when (currentStage) {
-            1 -> R.drawable.stage_1
-            2 -> R.drawable.stage_2
-            3 -> R.drawable.stage_3
-            4 -> R.drawable.stage_4
-            5 -> R.drawable.stage_5
-            else -> R.drawable.stage_1
+        // Get the selected skin from preferences (in case it changed)
+        val mainActivity = activity as? MainActivity
+        mainActivity?.let {
+            currentSkin = it.userPreferences.getSelectedSkin()
+        }
+        
+        // Determine drawable resource based on skin and stage
+        val drawableResId = when (currentSkin) {
+            0 -> when (currentStage) {
+                1 -> R.drawable.cat_0_stage_1
+                2 -> R.drawable.cat_0_stage_2
+                3 -> R.drawable.cat_0_stage_3
+                4 -> R.drawable.cat_0_stage_4
+                5 -> R.drawable.cat_0_stage_5
+                else -> R.drawable.cat_0_stage_1
+            }
+            1 -> when (currentStage) {
+                1 -> R.drawable.cat_1_stage_1
+                2 -> R.drawable.cat_1_stage_2
+                3 -> R.drawable.cat_1_stage_3
+                4 -> R.drawable.cat_1_stage_4
+                5 -> R.drawable.cat_1_stage_5
+                else -> R.drawable.cat_1_stage_1
+            }
+            2 -> when (currentStage) {
+                1 -> R.drawable.cat_2_stage_1
+                2 -> R.drawable.cat_2_stage_2
+                3 -> R.drawable.cat_2_stage_3
+                4 -> R.drawable.cat_2_stage_4
+                5 -> R.drawable.cat_2_stage_5
+                else -> R.drawable.cat_2_stage_1
+            }
+            3 -> when (currentStage) {
+                1 -> R.drawable.cat_3_stage_1
+                2 -> R.drawable.cat_3_stage_2
+                3 -> R.drawable.cat_3_stage_3
+                4 -> R.drawable.cat_3_stage_4
+                5 -> R.drawable.cat_3_stage_5
+                else -> R.drawable.cat_3_stage_1
+            }
+            else -> R.drawable.cat_0_stage_1
         }
         
         stageImageView.setImageResource(drawableResId)
