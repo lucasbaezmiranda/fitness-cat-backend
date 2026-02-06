@@ -101,6 +101,7 @@ class CustomizationFragment : Fragment() {
                 updateSkinInfo()
                 updateButtonStates()
             }
+        }
     }
     
     private fun changeSkin(delta: Int) {
@@ -121,9 +122,7 @@ class CustomizationFragment : Fragment() {
         updateSkinInfo()
         updateButtonStates()
         AppLogger.log("CustomizationFragment", "✓ Changed skin to $currentSkin")
-        }
     }
-    
     
     private fun updateCatImage() {
         AppLogger.log("CustomizationFragment", "updateCatImage called: currentSkin=$currentSkin, PREVIEW_STAGE=$PREVIEW_STAGE")
