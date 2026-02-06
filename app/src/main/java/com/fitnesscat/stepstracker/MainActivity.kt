@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
                 0 -> "Gato"
                 1 -> "Leaderboard"
                 2 -> "Personalización"
+                3 -> "Dev"
                 else -> ""
             }
         }.attach()

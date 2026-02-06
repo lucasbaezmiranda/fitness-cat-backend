@@ -43,31 +43,31 @@ class CustomizationFragment : Fragment() {
         skinNameText = view.findViewById(R.id.skinNameText)
         selectButton = view.findViewById(R.id.selectButton)
         
-        android.util.Log.d("CustomizationFragment", "Views initialized")
+        AppLogger.log("CustomizationFragment", "Views initialized")
         
         // Get MainActivity to access shared objects
         val mainActivity = activity as? MainActivity
         if (mainActivity != null) {
             // Load saved skin
             currentSkin = mainActivity.userPreferences.getSelectedSkin()
-            android.util.Log.d("CustomizationFragment", "Loaded skin from preferences: $currentSkin")
+            AppLogger.log("CustomizationFragment", "Loaded skin from preferences: $currentSkin")
         } else {
-            android.util.Log.w("CustomizationFragment", "MainActivity is null!")
+            AppLogger.log("CustomizationFragment", "⚠ MainActivity is null!")
         }
         
         // Set up button listeners
         prevSkinButton.setOnClickListener {
-            android.util.Log.d("CustomizationFragment", "Prev button clicked, currentSkin: $currentSkin")
+            AppLogger.log("CustomizationFragment", "▶ Prev button clicked, currentSkin: $currentSkin")
             changeSkin(-1)
         }
         
         nextSkinButton.setOnClickListener {
-            android.util.Log.d("CustomizationFragment", "Next button clicked, currentSkin: $currentSkin")
+            AppLogger.log("CustomizationFragment", "▶ Next button clicked, currentSkin: $currentSkin")
             changeSkin(1)
         }
         
         selectButton.setOnClickListener {
-            android.util.Log.d("CustomizationFragment", "Select button clicked")
+            AppLogger.log("CustomizationFragment", "▶ Select button clicked")
             saveSelectedSkin(mainActivity)
         }
         
@@ -75,19 +75,19 @@ class CustomizationFragment : Fragment() {
         updateCatImage()
         updateSkinInfo()
         
-        android.util.Log.d("CustomizationFragment", "Fragment setup complete")
+        AppLogger.log("CustomizationFragment", "✓ Fragment setup complete")
     }
     
     override fun onResume() {
         super.onResume()
-        android.util.Log.d("CustomizationFragment", "onResume called")
+        AppLogger.log("CustomizationFragment", "onResume called")
         
         // Reload skin in case it was changed elsewhere
         val mainActivity = activity as? MainActivity
         mainActivity?.let {
             val savedSkin = it.userPreferences.getSelectedSkin()
             if (savedSkin != currentSkin) {
-                android.util.Log.d("CustomizationFragment", "Skin changed externally: $currentSkin -> $savedSkin")
+                AppLogger.log("CustomizationFragment", "Skin changed externally: $currentSkin -> $savedSkin")
                 currentSkin = savedSkin
                 updateCatImage()
                 updateSkinInfo()
@@ -98,22 +98,22 @@ class CustomizationFragment : Fragment() {
     private fun changeSkin(delta: Int) {
         val newSkin = currentSkin + delta
         
-        android.util.Log.d("CustomizationFragment", "changeSkin called: delta=$delta, currentSkin=$currentSkin, newSkin=$newSkin")
+        AppLogger.log("CustomizationFragment", "changeSkin called: delta=$delta, currentSkin=$currentSkin, newSkin=$newSkin")
         
         if (newSkin < MIN_SKIN || newSkin > MAX_SKIN) {
-            android.util.Log.w("CustomizationFragment", "Skin out of bounds: $newSkin (min=$MIN_SKIN, max=$MAX_SKIN)")
+            AppLogger.log("CustomizationFragment", "✗ Skin out of bounds: $newSkin (min=$MIN_SKIN, max=$MAX_SKIN)")
             return
         }
         
         currentSkin = newSkin
-        android.util.Log.d("CustomizationFragment", "Updated currentSkin to: $currentSkin")
+        AppLogger.log("CustomizationFragment", "Updated currentSkin to: $currentSkin")
         updateCatImage()
         updateSkinInfo()
-        android.util.Log.d("CustomizationFragment", "Changed skin to $currentSkin")
+        AppLogger.log("CustomizationFragment", "✓ Changed skin to $currentSkin")
     }
     
     private fun updateCatImage() {
-        android.util.Log.d("CustomizationFragment", "updateCatImage called: currentSkin=$currentSkin, PREVIEW_STAGE=$PREVIEW_STAGE")
+        AppLogger.log("CustomizationFragment", "updateCatImage called: currentSkin=$currentSkin, PREVIEW_STAGE=$PREVIEW_STAGE")
         
         // Show stage 3a (PREVIEW_STAGE) of the current skin
         val drawableResId = when (currentSkin) {
@@ -122,18 +122,18 @@ class CustomizationFragment : Fragment() {
             2 -> R.drawable.cat_2_stage_3
             3 -> R.drawable.cat_3_stage_3
             else -> {
-                android.util.Log.w("CustomizationFragment", "Unknown skin: $currentSkin, using default")
+                AppLogger.log("CustomizationFragment", "⚠ Unknown skin: $currentSkin, using default")
                 R.drawable.cat_0_stage_3
             }
         }
         
-        android.util.Log.d("CustomizationFragment", "Setting drawable resource: $drawableResId")
+        AppLogger.log("CustomizationFragment", "Setting drawable resource: $drawableResId")
         
         try {
             catImageView.setImageResource(drawableResId)
-            android.util.Log.d("CustomizationFragment", "Image resource set successfully")
+            AppLogger.log("CustomizationFragment", "✓ Image resource set successfully")
         } catch (e: Exception) {
-            android.util.Log.e("CustomizationFragment", "Error setting image resource: ${e.message}", e)
+            AppLogger.log("CustomizationFragment", "✗ Error setting image resource: ${e.message}")
         }
         
         // Update button states
@@ -142,7 +142,7 @@ class CustomizationFragment : Fragment() {
         prevSkinButton.isEnabled = prevEnabled
         nextSkinButton.isEnabled = nextEnabled
         
-        android.util.Log.d("CustomizationFragment", "Button states: prevEnabled=$prevEnabled, nextEnabled=$nextEnabled")
+        AppLogger.log("CustomizationFragment", "Button states: prevEnabled=$prevEnabled, nextEnabled=$nextEnabled")
     }
     
     private fun updateSkinInfo() {
@@ -159,7 +159,7 @@ class CustomizationFragment : Fragment() {
     private fun saveSelectedSkin(mainActivity: MainActivity?) {
         mainActivity?.let {
             it.userPreferences.setSelectedSkin(currentSkin)
-            android.util.Log.d("CustomizationFragment", "Saved selected skin: $currentSkin")
+            AppLogger.log("CustomizationFragment", "✓ Saved selected skin: $currentSkin")
             
             // Show confirmation
             android.widget.Toast.makeText(
@@ -170,6 +170,8 @@ class CustomizationFragment : Fragment() {
             
             // Notify UserFragment to update if it's visible
             // The UserFragment will update on next resume
+        } ?: run {
+            AppLogger.log("CustomizationFragment", "✗ Cannot save skin: MainActivity is null")
         }
     }
 }
