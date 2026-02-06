@@ -83,8 +83,12 @@ class MainActivity : AppCompatActivity() {
                 1 -> "Leaderboard"
                 2 -> "Personalización"
                 3 -> "Dev"
-                4 -> "Mis datos"
+                4 -> ""  // Ocultar pestaña "Mis datos"
                 else -> ""
+            }
+            // Ocultar la pestaña de "Mis datos" (posición 4)
+            if (position == 4) {
+                tab.view.visibility = android.view.View.GONE
             }
         }.attach()
         

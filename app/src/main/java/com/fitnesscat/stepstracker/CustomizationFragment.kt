@@ -185,8 +185,9 @@ class CustomizationFragment : Fragment() {
                 android.widget.Toast.LENGTH_SHORT
             ).show()
             
-            // Notify UserFragment to update if it's visible
-            // The UserFragment will update on next resume
+            // Navigate to Gato tab to show the change immediately
+            it.viewPager.currentItem = 0
+            AppLogger.log("CustomizationFragment", "✓ Navigated to Gato tab to show selected skin")
         } ?: run {
             AppLogger.log("CustomizationFragment", "✗ Cannot save skin: MainActivity is null")
         }
