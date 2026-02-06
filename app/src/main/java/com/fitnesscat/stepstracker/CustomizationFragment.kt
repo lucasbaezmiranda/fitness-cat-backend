@@ -12,8 +12,10 @@ import androidx.fragment.app.Fragment
 class CustomizationFragment : Fragment() {
     
     private lateinit var catImageView: ImageView
-    private lateinit var prevSkinButton: Button
-    private lateinit var nextSkinButton: Button
+    private lateinit var estilo1Button: Button
+    private lateinit var estilo2Button: Button
+    private lateinit var estilo3Button: Button
+    private lateinit var estilo4Button: Button
     private lateinit var skinNameText: TextView
     private lateinit var selectButton: Button
     
@@ -38,8 +40,10 @@ class CustomizationFragment : Fragment() {
         
         // Initialize views
         catImageView = view.findViewById(R.id.catImageView)
-        prevSkinButton = view.findViewById(R.id.prevSkinButton)
-        nextSkinButton = view.findViewById(R.id.nextSkinButton)
+        estilo1Button = view.findViewById(R.id.estilo1Button)
+        estilo2Button = view.findViewById(R.id.estilo2Button)
+        estilo3Button = view.findViewById(R.id.estilo3Button)
+        estilo4Button = view.findViewById(R.id.estilo4Button)
         skinNameText = view.findViewById(R.id.skinNameText)
         selectButton = view.findViewById(R.id.selectButton)
         
@@ -56,14 +60,24 @@ class CustomizationFragment : Fragment() {
         }
         
         // Set up button listeners
-        prevSkinButton.setOnClickListener {
-            AppLogger.log("CustomizationFragment", "▶ Prev button clicked, currentSkin: $currentSkin")
-            changeSkin(-1)
+        estilo1Button.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Estilo 1 button clicked")
+            selectSkin(0)
         }
         
-        nextSkinButton.setOnClickListener {
-            AppLogger.log("CustomizationFragment", "▶ Next button clicked, currentSkin: $currentSkin")
-            changeSkin(1)
+        estilo2Button.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Estilo 2 button clicked")
+            selectSkin(1)
+        }
+        
+        estilo3Button.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Estilo 3 button clicked")
+            selectSkin(2)
+        }
+        
+        estilo4Button.setOnClickListener {
+            AppLogger.log("CustomizationFragment", "▶ Estilo 4 button clicked")
+            selectSkin(3)
         }
         
         selectButton.setOnClickListener {
@@ -74,6 +88,7 @@ class CustomizationFragment : Fragment() {
         // Update UI with loaded values
         updateCatImage()
         updateSkinInfo()
+        updateButtonStates()
         
         AppLogger.log("CustomizationFragment", "✓ Fragment setup complete")
     }
@@ -91,24 +106,24 @@ class CustomizationFragment : Fragment() {
                 currentSkin = savedSkin
                 updateCatImage()
                 updateSkinInfo()
+                updateButtonStates()
             }
         }
     }
     
-    private fun changeSkin(delta: Int) {
-        val newSkin = currentSkin + delta
+    private fun selectSkin(skin: Int) {
+        AppLogger.log("CustomizationFragment", "selectSkin called: skin=$skin")
         
-        AppLogger.log("CustomizationFragment", "changeSkin called: delta=$delta, currentSkin=$currentSkin, newSkin=$newSkin")
-        
-        if (newSkin < MIN_SKIN || newSkin > MAX_SKIN) {
-            AppLogger.log("CustomizationFragment", "✗ Skin out of bounds: $newSkin (min=$MIN_SKIN, max=$MAX_SKIN)")
+        if (skin < MIN_SKIN || skin > MAX_SKIN) {
+            AppLogger.log("CustomizationFragment", "✗ Skin out of bounds: $skin (min=$MIN_SKIN, max=$MAX_SKIN)")
             return
         }
         
-        currentSkin = newSkin
+        currentSkin = skin
         AppLogger.log("CustomizationFragment", "Updated currentSkin to: $currentSkin")
         updateCatImage()
         updateSkinInfo()
+        updateButtonStates()
         AppLogger.log("CustomizationFragment", "✓ Changed skin to $currentSkin")
     }
     
@@ -137,12 +152,17 @@ class CustomizationFragment : Fragment() {
         }
         
         // Update button states
-        val prevEnabled = currentSkin > MIN_SKIN
-        val nextEnabled = currentSkin < MAX_SKIN
-        prevSkinButton.isEnabled = prevEnabled
-        nextSkinButton.isEnabled = nextEnabled
+        updateButtonStates()
+    }
+    
+    private fun updateButtonStates() {
+        // Highlight the currently selected button
+        estilo1Button.isSelected = (currentSkin == 0)
+        estilo2Button.isSelected = (currentSkin == 1)
+        estilo3Button.isSelected = (currentSkin == 2)
+        estilo4Button.isSelected = (currentSkin == 3)
         
-        AppLogger.log("CustomizationFragment", "Button states: prevEnabled=$prevEnabled, nextEnabled=$nextEnabled")
+        AppLogger.log("CustomizationFragment", "Button states updated: currentSkin=$currentSkin")
     }
     
     private fun updateSkinInfo() {
