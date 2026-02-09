@@ -61,6 +61,11 @@ class StepWorker(context: Context, params: WorkerParameters) : Worker(context, p
         try {
             saveStepCountToFile(stepCount, timestampSeconds, latitude, longitude)
             Log.d(TAG, "✓ Saved step count to file: steps=$stepCount, timestamp=$timestampSeconds, lat=$latitude, lng=$longitude")
+            
+            // Also add to pending records for batch sync
+            userPreferences.addPendingStepRecord(stepCount, timestampSeconds, latitude, longitude)
+            Log.d(TAG, "✓ Added to pending records for batch sync")
+            
             return Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Error saving step count to file: ${e.message}", e)

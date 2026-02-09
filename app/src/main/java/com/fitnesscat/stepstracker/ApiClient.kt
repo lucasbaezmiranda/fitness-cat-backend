@@ -126,7 +126,7 @@ class ApiClient {
      * Syncs multiple step records in batch to the API endpoint
      * 
      * @param userId User ID from UserPreferences
-     * @param recordsJsonString JSON array string, format: [{"steps_at_time": 100, "timestamp": 1704123456}, ...]
+     * @param recordsJsonString JSON array string, format: [{"steps": 100, "timestamp": 1704123456, "latitude": 40.7128, "longitude": -74.0060}, ...]
      * @param callback Optional callback to handle success/failure
      */
     fun syncStepsBatch(

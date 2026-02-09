@@ -19,8 +19,6 @@ class UserFragment : Fragment() {
     
     private lateinit var backgroundImageView: ImageView
     private lateinit var stepsText: TextView
-    private lateinit var locationText: TextView
-    private lateinit var syncButton: Button
     private lateinit var stageImageView: ImageView
     private lateinit var prevStageButton: Button
     private lateinit var nextStageButton: Button
@@ -60,8 +58,6 @@ class UserFragment : Fragment() {
         // Initialize views
         backgroundImageView = view.findViewById(R.id.backgroundImageView)
         stepsText = view.findViewById(R.id.stepsText)
-        locationText = view.findViewById(R.id.locationText)
-        syncButton = view.findViewById(R.id.syncButton)
         stageImageView = view.findViewById(R.id.stageImageView)
         prevStageButton = view.findViewById(R.id.prevStageButton)
         nextStageButton = view.findViewById(R.id.nextStageButton)
@@ -78,10 +74,6 @@ class UserFragment : Fragment() {
         }
         
         // Set up button listeners
-        syncButton.setOnClickListener {
-            mainActivity?.forceSyncToAPI()
-        }
-        
         prevStageButton.setOnClickListener {
             changeStage(-1, mainActivity)
         }
@@ -94,9 +86,6 @@ class UserFragment : Fragment() {
         updateStageImage()
         updateHealthBar()
         updateBackground()
-        
-        // Load and display current location
-        refreshLocation()
         
         // Refresh step count
         refreshStepCount(mainActivity)
@@ -113,7 +102,6 @@ class UserFragment : Fragment() {
             currentSkin = it.userPreferences.getSelectedSkin()
         }
         updateBackground() // Update background in case time changed
-        refreshLocation() // Update location
         refreshStepCount(mainActivity)
         startStepCountUpdates(mainActivity)
         updateStageImage() // Update stage image with current skin
@@ -234,32 +222,6 @@ class UserFragment : Fragment() {
         }
         
         healthProgressBar.progressTintList = ColorStateList.valueOf(colorResId)
-    }
-    
-    /**
-     * Refreshes the activity display from UserPreferences
-     */
-    /**
-     * Gets and displays current GPS location
-     */
-    private fun refreshLocation() {
-        context?.let { ctx ->
-            val locationHelper = LocationHelper(ctx)
-            locationHelper.getCurrentLocation { latitude, longitude ->
-                mainHandler.post {
-                    if (latitude != null && longitude != null) {
-                        // Format coordinates to 6 decimal places (~1 meter accuracy)
-                        val latStr = String.format("%.6f", latitude)
-                        val lonStr = String.format("%.6f", longitude)
-                        locationText.text = "$latStr, $lonStr"
-                        android.util.Log.d("UserFragment", "Updated location: lat=$latStr, lng=$lonStr")
-                    } else {
-                        locationText.text = "Ubicación no disponible"
-                        android.util.Log.w("UserFragment", "Location not available")
-                    }
-                }
-            }
-        }
     }
     
     /**

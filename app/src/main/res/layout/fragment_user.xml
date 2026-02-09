@@ -18,15 +18,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Steps and location info at the top -->
+    <!-- Steps info at the top -->
     <TextView
         android:id="@+id/stepsLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Pasos de hoy"
+        android:text="Pasos acumulados"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@android:color/white"
+        android:textColor="#000000"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:layout_marginTop="16dp"
@@ -52,38 +52,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/stepsLabel" />
 
-    <TextView
-        android:id="@+id/locationLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Posición actual"
-        android:textSize="14sp"
-        android:textColor="@android:color/white"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:layout_marginTop="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/stepsText" />
-
-    <TextView
-        android:id="@+id/locationText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Obteniendo ubicación..."
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#4CAF50"
-        android:background="#E8F5E9"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
-        android:layout_marginTop="4dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/locationLabel" />
-
     <!-- Main grid container (centered) -->
     <LinearLayout
         android:id="@+id/gridContainer"
@@ -95,16 +63,16 @@
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/locationText"
+        app:layout_constraintTop_toBottomOf="@+id/stepsText"
         app:layout_constraintBottom_toBottomOf="@+id/backgroundImageView">
 
-        <!-- Stage row: Image on left, buttons on right -->
+        <!-- Stage row: Image centered -->
         <LinearLayout
             android:id="@+id/stageRow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:gravity="center"
             android:layout_marginBottom="16dp">
 
             <ImageView
@@ -115,32 +83,32 @@
                 android:scaleType="fitCenter"
                 android:src="@drawable/stage_1" />
 
-            <!-- Stage buttons container (horizontal) -->
+            <!-- Stage buttons container (horizontal, below image) -->
             <LinearLayout
                 android:id="@+id/stageButtonsContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center"
-                android:layout_marginStart="16dp">
+                android:layout_marginTop="16dp">
 
                 <Button
                     android:id="@+id/prevStageButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
                     android:text="◀"
-                    android:textSize="20sp"
+                    android:textSize="32sp"
                     android:padding="0dp"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
-                    android:layout_marginEnd="4dp" />
+                    android:layout_marginEnd="16dp" />
 
                 <Button
                     android:id="@+id/nextStageButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
                     android:text="▶"
-                    android:textSize="20sp"
+                    android:textSize="32sp"
                     android:padding="0dp"
                     android:minWidth="0dp"
                     android:minHeight="0dp" />
@@ -188,19 +156,6 @@
         </LinearLayout>
 
     </LinearLayout>
-
-    <Button
-        android:id="@+id/syncButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Sincronizar ahora"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/locationText" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 

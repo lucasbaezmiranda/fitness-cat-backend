@@ -77,7 +77,7 @@ class UserPreferences(context: Context) {
     
     /**
      * Gets pending step records as JSON array string
-     * Format: [{"steps_at_time": 100, "timestamp": 1704123456}, ...]
+     * Format: [{"steps": 100, "timestamp": 1704123456, "latitude": 40.7128, "longitude": -74.0060}, ...]
      */
     fun getPendingStepRecords(): String {
         return prefs.getString(KEY_PENDING_STEP_RECORDS, "[]") ?: "[]"
@@ -85,7 +85,7 @@ class UserPreferences(context: Context) {
     
     /**
      * Saves pending step records as JSON array string
-     * Format: [{"steps_at_time": 100, "timestamp": 1704123456}, ...]
+     * Format: [{"steps": 100, "timestamp": 1704123456, "latitude": 40.7128, "longitude": -74.0060}, ...]
      */
     fun savePendingStepRecords(jsonString: String) {
         prefs.edit().putString(KEY_PENDING_STEP_RECORDS, jsonString).apply()
@@ -102,7 +102,7 @@ class UserPreferences(context: Context) {
         try {
             val pendingJson = getPendingStepRecords()
             
-            // Construir nuevo record como string JSON
+            // Construir nuevo record como string JSON (mismo formato que syncSteps individual)
             val coordinateStr = buildString {
                 if (latitude != null) {
                     append(",\"latitude\":$latitude")
@@ -112,7 +112,7 @@ class UserPreferences(context: Context) {
                 }
             }
             
-            val newRecord = "{\"steps_at_time\":$stepsAtTime,\"timestamp\":$timestamp$coordinateStr}"
+            val newRecord = "{\"steps\":$stepsAtTime,\"timestamp\":$timestamp$coordinateStr}"
             
             // Si está vacío, crear array nuevo, sino agregar al existente
             val updatedJson = if (pendingJson == "[]") {

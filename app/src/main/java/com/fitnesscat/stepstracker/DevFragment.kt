@@ -30,6 +30,7 @@ class DevFragment : Fragment() {
     private lateinit var devLogsText: TextView
     private lateinit var saveLogsButton: Button
     private lateinit var exportStepsButton: Button
+    private lateinit var locationText: TextView
     
     private val mainHandler = Handler(Looper.getMainLooper())
     private var statusUpdateRunnable: Runnable? = null
@@ -50,6 +51,7 @@ class DevFragment : Fragment() {
         devLogsText = view.findViewById(R.id.devLogsText)
         saveLogsButton = view.findViewById(R.id.saveLogsButton)
         exportStepsButton = view.findViewById(R.id.exportStepsButton)
+        locationText = view.findViewById(R.id.locationText)
         
         // Set up log listener to receive logs from AppLogger
         AppLogger.setLogListener { logLine ->
@@ -71,6 +73,9 @@ class DevFragment : Fragment() {
         
         // Load existing logs
         updateLogsDisplay()
+        
+        // Load and display current location
+        refreshLocation()
         
         // Wait a bit before first check to give service time to start (avoid race condition)
         mainHandler.postDelayed({
@@ -102,6 +107,7 @@ class DevFragment : Fragment() {
         super.onResume()
         updateDebugStatus()
         startStatusUpdates()
+        refreshLocation()
     }
     
     override fun onPause() {
@@ -513,6 +519,29 @@ class DevFragment : Fragment() {
                 "Error al exportar pasos: ${e.message}",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+    
+    /**
+     * Gets and displays current GPS location
+     */
+    private fun refreshLocation() {
+        context?.let { ctx ->
+            val locationHelper = LocationHelper(ctx)
+            locationHelper.getCurrentLocation { latitude, longitude ->
+                mainHandler.post {
+                    if (latitude != null && longitude != null) {
+                        // Format coordinates to 6 decimal places (~1 meter accuracy)
+                        val latStr = String.format("%.6f", latitude)
+                        val lonStr = String.format("%.6f", longitude)
+                        locationText.text = "GPS: $latStr, $lonStr"
+                        android.util.Log.d("DevFragment", "Updated location: lat=$latStr, lng=$lonStr")
+                    } else {
+                        locationText.text = "GPS: Ubicación no disponible"
+                        android.util.Log.w("DevFragment", "Location not available")
+                    }
+                }
+            }
         }
     }
 }

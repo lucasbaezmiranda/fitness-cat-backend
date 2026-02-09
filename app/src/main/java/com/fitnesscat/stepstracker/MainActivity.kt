@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         // Connect TabLayout with ViewPager2
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
-                0 -> "Gato"
+                0 -> "Mi mascota"
                 1 -> "Leaderboard"
                 2 -> "Personalización"
                 3 -> "Dev"
@@ -341,6 +341,9 @@ class MainActivity : AppCompatActivity() {
         
         // Always try to start service (in case it stopped)
         startStepTrackingService()
+        
+        // Sync pending batch records when app opens
+        syncPendingBatchRecords()
         
         // Start hourly automatic sync (only while app is open)
         startHourlySync()
