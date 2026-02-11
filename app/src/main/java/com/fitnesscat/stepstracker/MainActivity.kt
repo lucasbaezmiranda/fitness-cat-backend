@@ -82,20 +82,21 @@ class MainActivity : AppCompatActivity() {
             tab.text = when (position) {
                 0 -> "Mi mascota"
                 1 -> "Leaderboard"
-                2 -> "Personalización"
+                2 -> {
+                    // Show "Personalización" if setup not complete, otherwise "Mis datos"
+                    if (userPreferences.isInitialSetupComplete()) {
+                        "Mis datos"
+                    } else {
+                        "Personalización"
+                    }
+                }
                 3 -> "Dev"
-                4 -> ""  // Ocultar pestaña "Mis datos"
+                4 -> ""  // Ocultar pestaña "Mis datos" (edición)
                 else -> ""
             }
-            // Ocultar la pestaña de "Mis datos" (posición 4)
+            // Ocultar la pestaña de "Mis datos" (posición 4 - edición)
             if (position == 4) {
                 tab.view.visibility = android.view.View.GONE
-            }
-            
-            // Bloquear pestaña de Personalización si la configuración inicial ya está completa
-            if (position == 2 && userPreferences.isInitialSetupComplete()) {
-                tab.view.isEnabled = false
-                tab.view.alpha = 0.5f
             }
         }
         tabLayoutMediator?.attach()
@@ -684,20 +685,23 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
-     * Updates the Personalización tab state (enabled/disabled)
+     * Updates the Personalización/Mis datos tab state
      * Should be called when setup completion status changes
+     * This will refresh the adapter to show the correct fragment
      */
     fun updatePersonalizationTabState() {
-        val tab = tabLayout.getTabAt(2) // Personalización is at position 2
-        tab?.let {
-            if (userPreferences.isInitialSetupComplete()) {
-                it.view.isEnabled = false
-                it.view.alpha = 0.5f
-            } else {
-                it.view.isEnabled = true
-                it.view.alpha = 1.0f
-            }
+        // Update tab text
+        val tab = tabLayout.getTabAt(2)
+        tab?.text = if (userPreferences.isInitialSetupComplete()) {
+            "Mis datos"
+        } else {
+            "Personalización"
         }
+        
+        // Notify adapter that item ID changed (forces fragment recreation)
+        // The getItemId override in ViewPagerAdapter will return different IDs
+        // based on setup state, which forces ViewPager2 to recreate the fragment
+        viewPager.adapter?.notifyItemChanged(2)
     }
 }
 

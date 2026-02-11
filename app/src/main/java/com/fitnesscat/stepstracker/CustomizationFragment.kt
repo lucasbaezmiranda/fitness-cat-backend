@@ -14,7 +14,6 @@ class CustomizationFragment : Fragment() {
     private lateinit var catImageView: ImageView
     private lateinit var prevSkinButton: Button
     private lateinit var nextSkinButton: Button
-    private lateinit var skinNameText: TextView
     private lateinit var selectButton: Button
     private lateinit var myDataButton: Button
     
@@ -41,7 +40,6 @@ class CustomizationFragment : Fragment() {
         catImageView = view.findViewById(R.id.catImageView)
         prevSkinButton = view.findViewById(R.id.prevSkinButton)
         nextSkinButton = view.findViewById(R.id.nextSkinButton)
-        skinNameText = view.findViewById(R.id.skinNameText)
         selectButton = view.findViewById(R.id.selectButton)
         myDataButton = view.findViewById(R.id.myDataButton)
         
@@ -89,7 +87,6 @@ class CustomizationFragment : Fragment() {
         
         // Update UI with loaded values
         updateCatImage()
-        updateSkinInfo()
         updateButtonStates()
         
         AppLogger.log("CustomizationFragment", "✓ Fragment setup complete")
@@ -107,7 +104,6 @@ class CustomizationFragment : Fragment() {
                 AppLogger.log("CustomizationFragment", "Skin changed externally: $currentSkin -> $savedSkin")
                 currentSkin = savedSkin
                 updateCatImage()
-                updateSkinInfo()
                 updateButtonStates()
             }
         }
@@ -128,7 +124,6 @@ class CustomizationFragment : Fragment() {
         currentSkin = finalSkin
         AppLogger.log("CustomizationFragment", "Updated currentSkin to: $currentSkin (circular navigation)")
         updateCatImage()
-        updateSkinInfo()
         updateButtonStates()
         AppLogger.log("CustomizationFragment", "✓ Changed skin to $currentSkin")
     }
@@ -171,17 +166,6 @@ class CustomizationFragment : Fragment() {
         AppLogger.log("CustomizationFragment", "Button states updated: currentSkin=$currentSkin (circular carousel)")
     }
     
-    private fun updateSkinInfo() {
-        val skinName = when (currentSkin) {
-            0 -> "Gato Original"
-            1 -> "Gato Variante 1"
-            2 -> "Gato Variante 2"
-            3 -> "Gato Variante 3"
-            else -> "Gato Original"
-        }
-        skinNameText.text = skinName
-    }
-    
     private fun saveSelectedSkin(mainActivity: MainActivity?) {
         mainActivity?.let {
             // Check if user has completed their data
@@ -218,11 +202,12 @@ class CustomizationFragment : Fragment() {
             // Show confirmation
             android.widget.Toast.makeText(
                 context,
-                "¡Configuración completada! Skin seleccionado: ${skinNameText.text}",
+                "¡Configuración completada!",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
             
-            // Navigate to Gato tab to show the change immediately
+            // Update tab state and navigate to Gato tab
+            it.updatePersonalizationTabState()
             it.viewPager.currentItem = 0
             AppLogger.log("CustomizationFragment", "✓ Navigated to Gato tab to show selected skin")
         } ?: run {

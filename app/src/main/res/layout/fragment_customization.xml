@@ -45,16 +45,6 @@
             android:paddingEnd="24dp"
             android:paddingTop="12dp"
             android:paddingBottom="12dp"
-            android:layout_marginBottom="16dp" />
-
-        <TextView
-            android:id="@+id/skinNameText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Gato Original"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#333333"
             android:layout_marginBottom="24dp" />
 
         <LinearLayout
