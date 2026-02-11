@@ -37,6 +37,8 @@ class StepCounter(
     init {
         // Load total step count from saved state
         stepCount = userPreferences.getTotalStepCount()
+        // Initialize daily step tracking
+        userPreferences.initializeDailyStepTracking(stepCount)
     }
 
     fun startListening() {

@@ -114,11 +114,12 @@ class UserFragment : Fragment() {
     
     private fun refreshStepCount(mainActivity: MainActivity?) {
         mainActivity?.let {
-            val currentSteps = it.userPreferences.getTotalStepCount()
+            // Show only today's steps (not accumulated)
+            val todaySteps = it.userPreferences.getTodayStepCount()
             val previousText = stepsText.text.toString()
-            stepsText.text = currentSteps.toString()
-            android.util.Log.d("UserFragment", "Refreshed step count: $currentSteps (was: $previousText)")
-            AppLogger.log("UserFragment", "Reading steps: $currentSteps")
+            stepsText.text = todaySteps.toString()
+            android.util.Log.d("UserFragment", "Refreshed today's step count: $todaySteps (was: $previousText)")
+            AppLogger.log("UserFragment", "Reading today's steps: $todaySteps")
         }
     }
     

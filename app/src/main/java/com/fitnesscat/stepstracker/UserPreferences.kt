@@ -28,6 +28,10 @@ class UserPreferences(context: Context) {
         private const val KEY_AGE = "age"  // User age
         private const val KEY_GENDER = "gender"  // User gender
         private const val KEY_LOCATION = "location"  // User location
+        private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete"  // Whether initial setup is done
+        private const val KEY_DAILY_STEP_COUNT = "daily_step_count"  // Steps for current day
+        private const val KEY_DAILY_STEP_DATE = "daily_step_date"  // Date of last daily step reset (YYYY-MM-DD)
+        private const val KEY_TOTAL_STEPS_AT_DAY_START = "total_steps_at_day_start"  // Total steps at start of current day
     }
 
     fun getUserId(): String {
@@ -267,6 +271,75 @@ class UserPreferences(context: Context) {
     fun setLocation(location: String?) {
         prefs.edit().putString(KEY_LOCATION, location).apply()
         android.util.Log.d("UserPreferences", "Saved location: $location")
+    }
+    
+    /**
+     * Checks if initial setup is complete (user has selected skin and filled data)
+     */
+    fun isInitialSetupComplete(): Boolean {
+        return prefs.getBoolean(KEY_INITIAL_SETUP_COMPLETE, false)
+    }
+    
+    /**
+     * Marks initial setup as complete
+     */
+    fun setInitialSetupComplete(complete: Boolean) {
+        prefs.edit().putBoolean(KEY_INITIAL_SETUP_COMPLETE, complete).apply()
+        android.util.Log.d("UserPreferences", "Set initial setup complete: $complete")
+    }
+    
+    /**
+     * Gets steps for current day (resets at midnight)
+     * Calculates: today's steps = total steps - total steps at start of day
+     */
+    fun getTodayStepCount(): Int {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        val lastDate = prefs.getString(KEY_DAILY_STEP_DATE, null)
+        val totalSteps = getTotalStepCount()
+        
+        // If date changed, reset daily tracking
+        if (lastDate != today) {
+            prefs.edit()
+                .putString(KEY_DAILY_STEP_DATE, today)
+                .putInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps)
+                .putInt(KEY_DAILY_STEP_COUNT, 0)
+                .apply()
+            android.util.Log.d("UserPreferences", "New day detected - reset daily tracking. Total: $totalSteps")
+            return 0
+        }
+        
+        // Same day - calculate today's steps
+        val totalAtStartOfDay = prefs.getInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps)
+        val todaySteps = (totalSteps - totalAtStartOfDay).coerceAtLeast(0)
+        
+        // Update cached daily count
+        prefs.edit().putInt(KEY_DAILY_STEP_COUNT, todaySteps).apply()
+        
+        return todaySteps
+    }
+    
+    /**
+     * Initializes daily step tracking when app starts
+     * Should be called on app startup to ensure proper daily reset
+     */
+    fun initializeDailyStepTracking(totalSteps: Int) {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        val lastDate = prefs.getString(KEY_DAILY_STEP_DATE, null)
+        
+        if (lastDate != today) {
+            // New day - reset and save starting point
+            prefs.edit()
+                .putString(KEY_DAILY_STEP_DATE, today)
+                .putInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps)
+                .putInt(KEY_DAILY_STEP_COUNT, 0)
+                .apply()
+            android.util.Log.d("UserPreferences", "Initialized new day - daily steps reset. Total: $totalSteps")
+        } else {
+            // Same day - ensure we have a starting point
+            if (!prefs.contains(KEY_TOTAL_STEPS_AT_DAY_START)) {
+                prefs.edit().putInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps).apply()
+            }
+        }
     }
 }
 

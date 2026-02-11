@@ -53,6 +53,15 @@ class CustomizationFragment : Fragment() {
             // Load saved skin
             currentSkin = mainActivity.userPreferences.getSelectedSkin()
             AppLogger.log("CustomizationFragment", "Loaded skin from preferences: $currentSkin")
+            
+            // If setup is already complete, disable skin selection buttons
+            if (mainActivity.userPreferences.isInitialSetupComplete()) {
+                prevSkinButton.isEnabled = false
+                nextSkinButton.isEnabled = false
+                selectButton.isEnabled = false
+                selectButton.text = "Configuración completada"
+                AppLogger.log("CustomizationFragment", "Setup already complete - buttons disabled")
+            }
         } else {
             AppLogger.log("CustomizationFragment", "⚠ MainActivity is null!")
         }
@@ -175,13 +184,41 @@ class CustomizationFragment : Fragment() {
     
     private fun saveSelectedSkin(mainActivity: MainActivity?) {
         mainActivity?.let {
+            // Check if user has completed their data
+            val hasNickname = !it.userPreferences.getNickname().isNullOrEmpty()
+            val hasAge = it.userPreferences.getAge() != null
+            val hasGender = !it.userPreferences.getGender().isNullOrEmpty()
+            val hasLocation = !it.userPreferences.getLocation().isNullOrEmpty()
+            
+            if (!hasNickname || !hasAge || !hasGender || !hasLocation) {
+                // User hasn't completed data - show message and navigate to UserData
+                android.widget.Toast.makeText(
+                    context,
+                    "Por favor completa tus datos primero",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                navigateToUserData()
+                return
+            }
+            
+            // Save skin and mark setup as complete
             it.userPreferences.setSelectedSkin(currentSkin)
-            AppLogger.log("CustomizationFragment", "✓ Saved selected skin: $currentSkin")
+            it.userPreferences.setInitialSetupComplete(true)
+            AppLogger.log("CustomizationFragment", "✓ Saved selected skin: $currentSkin and marked setup as complete")
+            
+            // Disable buttons immediately
+            prevSkinButton.isEnabled = false
+            nextSkinButton.isEnabled = false
+            selectButton.isEnabled = false
+            selectButton.text = "Configuración completada"
+            
+            // Update tab state in MainActivity
+            it.updatePersonalizationTabState()
             
             // Show confirmation
             android.widget.Toast.makeText(
                 context,
-                "Skin seleccionado: ${skinNameText.text}",
+                "¡Configuración completada! Skin seleccionado: ${skinNameText.text}",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
             
