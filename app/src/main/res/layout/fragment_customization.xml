@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_screen"
+    tools:context=".CustomizationFragment">
+
+    <TextView
+        android:id="@+id/customizationTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Customization"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="@color/background_card"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/myDataButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="My data"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/customizationTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Main content: controls (left) + preview (right) -->
+    <LinearLayout
+        android:id="@+id/contentRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/myDataButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Left column: 4 rows with label → value -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <!-- Piel row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Skin"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/arrowPiel"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="→"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
+
+                <TextView
+                    android:id="@+id/valuePiel"
+                    android:layout_width="32dp"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+            <!-- Manchas row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Spots"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/arrowManchas"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="→"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
+
+                <TextView
+                    android:id="@+id/valueManchas"
+                    android:layout_width="32dp"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+            <!-- Ojos row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Eyes"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/arrowOjos"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="→"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
+
+                <TextView
+                    android:id="@+id/valueOjos"
+                    android:layout_width="32dp"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+            <!-- Orejas row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Ears"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/arrowOrejas"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="→"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
+
+                <TextView
+                    android:id="@+id/valueOrejas"
+                    android:layout_width="32dp"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Right column: preview -->
+        <ImageView
+            android:id="@+id/catImageView"
+            android:layout_width="0dp"
+            android:layout_height="300dp"
+            android:layout_weight="1"
+            android:contentDescription="Cat preview"
+            android:scaleType="fitCenter"
+            android:src="@drawable/cat_stage_1" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/selectButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select this cat"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/contentRow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

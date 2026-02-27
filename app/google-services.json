@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1024484011616",
+    "project_id": "fitness-cat-notif-v1",
+    "storage_bucket": "fitness-cat-notif-v1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1024484011616:android:d6666e700159e3884a9d05",
+        "android_client_info": {
+          "package_name": "com.fitnesscat.stepstracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAe8kI_9k_v7Lm_c1ty3RFN_ZJbZC0nzvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
