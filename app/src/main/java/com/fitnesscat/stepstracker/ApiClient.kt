@@ -208,6 +208,7 @@ class ApiClient {
         country: String?,
         city: String?,
         urbanContext: String?,
+        fcmToken: String? = null,
         callback: ((Boolean, String?) -> Unit)? = null
     ) {
         if (NEW_API_BASE.contains("PLACEHOLDER")) {
@@ -226,6 +227,7 @@ class ApiClient {
                     if (country != null) put("country", country)
                     if (city != null) put("city", city)
                     if (urbanContext != null) put("urban_context", urbanContext)
+                    if (fcmToken != null) put("fcm_token", fcmToken)
                 }
 
                 val mediaType = "application/json; charset=utf-8".toMediaType()
@@ -245,6 +247,55 @@ class ApiClient {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error syncing user profile: ${e.message}", e)
+                callback?.invoke(false, e.message)
+            }
+        }
+    }
+
+    /**
+     * Syncs activity + speed records in batch to the activity endpoint
+     *
+     * @param userId User ID from UserPreferences
+     * @param recordsJsonString JSON array string with activity records
+     * @param callback Optional callback to handle success/failure
+     */
+    fun syncActivityBatch(
+        userId: String,
+        recordsJsonString: String,
+        callback: ((Boolean, String?) -> Unit)? = null
+    ) {
+        if (recordsJsonString.isEmpty() || recordsJsonString == "[]") {
+            Log.d(TAG, "No activity records to sync")
+            callback?.invoke(true, null)
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val jsonString = "{\"user_id\":\"$userId\",\"records\":$recordsJsonString}"
+
+                Log.d(TAG, "Sending activity batch sync for user: $userId")
+                Log.d(TAG, "JSON body: $jsonString")
+
+                val mediaType = "application/json; charset=utf-8".toMediaType()
+                val requestBody = jsonString.toRequestBody(mediaType)
+                val request = createRequest("$NEW_API_BASE/activity", requestBody)
+
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    Log.d(TAG, "Activity response: HTTP ${response.code} - $responseBody")
+
+                    if (response.isSuccessful) {
+                        Log.d(TAG, "✓ Successfully synced activity batch for user: $userId")
+                        callback?.invoke(true, null)
+                    } else {
+                        val errorMsg = "HTTP ${response.code}: $responseBody"
+                        Log.e(TAG, "✗ Failed to sync activity batch: $errorMsg")
+                        callback?.invoke(false, errorMsg)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "✗ Error syncing activity batch: ${e.message}", e)
                 callback?.invoke(false, e.message)
             }
         }

@@ -4,8 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.hardware.Sensor
-import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -25,7 +23,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import android.app.PendingIntent
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.concurrent.TimeUnit
 
@@ -46,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     private var tabLayoutMediator: TabLayoutMediator? = null
     
     private val PERMISSION_REQUEST_CODE = 1001
-    private val ACTIVITY_RECOGNITION_REQUEST_CODE = 1002
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1003
     
     // Handlers for periodic updates
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -62,7 +59,6 @@ class MainActivity : AppCompatActivity() {
         // Hide ActionBar if it exists
         supportActionBar?.hide()
         
-        // Set instance for ActivityRecognitionReceiver
         instance = this
         
         // Initialize helpers FIRST (needed for fragments)
@@ -128,37 +124,61 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+        // Get FCM token and save it for targeted notifications
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                android.util.Log.d("MainActivity", "FCM token: ${token.take(10)}...")
+                userPreferences.setFcmToken(token)
+                // Sync profile with token
+                apiClient.syncUserProfile(
+                    userId = userPreferences.getUserId(),
+                    nickname = userPreferences.getNickname(),
+                    age = userPreferences.getAge(),
+                    gender = userPreferences.getGender(),
+                    country = userPreferences.getCountry(),
+                    city = userPreferences.getCity(),
+                    urbanContext = userPreferences.getUrbanContext(),
+                    fcmToken = token
+                )
+            } else {
+                android.util.Log.e("MainActivity", "Failed to get FCM token", task.exception)
+            }
+        }
+
         // Request battery optimization exemption (important for Motorola and other restrictive devices)
         requestBatteryOptimizationExemption()
+
+        // Request location permissions for GPS tracking
+        requestLocationPermissions()
     }
     
     /**
-     * Schedules StepWorker to run every 1 hour to save step records to .txt file
-     * Uses minimal constraints to work on restrictive devices like Motorola
+     * Schedules StepWorker to run every 10 minutes to save step records and GPS location.
+     * Uses minimal constraints to work on restrictive devices like Motorola.
      */
     private fun schedulePeriodicStepReading() {
-        // Minimal constraints - allow work even when device is idle/charging
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED) // Can run offline
-            .setRequiresBatteryNotLow(false) // Allow even when battery is low
-            .setRequiresCharging(false) // Don't require charging
-            .setRequiresDeviceIdle(false) // Allow even when device is active
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .setRequiresBatteryNotLow(false)
+            .setRequiresCharging(false)
+            .setRequiresDeviceIdle(false)
             .build()
-        
+
         val periodicWork = PeriodicWorkRequestBuilder<StepWorker>(
-            1, TimeUnit.HOURS
+            10, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
-            .setInitialDelay(1, TimeUnit.HOURS) // Start after 1 hour
+            .setInitialDelay(10, TimeUnit.MINUTES)
             .build()
-        
+
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "StepWorker",
-            ExistingPeriodicWorkPolicy.UPDATE, // Update existing work with new constraints
+            ExistingPeriodicWorkPolicy.UPDATE,
             periodicWork
         )
-        
-        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 1 hour with minimal constraints")
+
+        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 10 minutes")
     }
     
     /**
@@ -193,6 +213,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Requests foreground location permissions, then background location permission separately.
+     * Background location (ACCESS_BACKGROUND_LOCATION) must be requested AFTER foreground is granted.
+     */
+    private fun requestLocationPermissions() {
+        val hasFineLocation = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFineLocation) {
+            // Request foreground location first
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Foreground granted, request background if needed
+            val hasBackground = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasBackground) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                    LOCATION_PERMISSION_REQUEST_CODE
+                )
+            }
+        }
+    }
+
     private fun requestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
         
@@ -205,23 +260,6 @@ class MainActivity : AppCompatActivity() {
             ) {
                 permissionsToRequest.add(Manifest.permission.ACTIVITY_RECOGNITION)
             }
-        }
-        
-        // Location permissions for GPS
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-        
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
         
         // Notification permission (for foreground service on Android 13+)
@@ -245,7 +283,7 @@ class MainActivity : AppCompatActivity() {
             // All permissions already granted, start service
             android.util.Log.d("MainActivity", "All permissions already granted - starting service")
             startStepTrackingService()
-            
+
             // Also retry after 2 seconds to ensure service starts (in case of timing issues)
             mainHandler.postDelayed({
                 android.util.Log.d("MainActivity", "Retrying service start after 2 seconds (already had permissions)...")
@@ -268,13 +306,11 @@ class MainActivity : AppCompatActivity() {
                     break
                 }
             }
-            
+
             if (allGranted) {
                 android.util.Log.d("MainActivity", "All permissions granted - starting service")
-                // Try to start service immediately
                 startStepTrackingService()
-                
-                // Also retry after 2 seconds to ensure service starts (in case of timing issues)
+
                 mainHandler.postDelayed({
                     android.util.Log.d("MainActivity", "Retrying service start after 2 seconds...")
                     startStepTrackingService()
@@ -285,6 +321,24 @@ class MainActivity : AppCompatActivity() {
                     getString(R.string.permission_denied),
                     Toast.LENGTH_LONG
                 ).show()
+            }
+        } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            // After foreground location is granted, request background location
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("MainActivity", "Foreground location granted")
+                // Now request background location (must be separate on Android 10+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val hasBackground = ContextCompat.checkSelfPermission(
+                        this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!hasBackground) {
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                            LOCATION_PERMISSION_REQUEST_CODE
+                        )
+                    }
+                }
             }
         }
     }
@@ -374,7 +428,7 @@ class MainActivity : AppCompatActivity() {
         
         // Sync pending batch records when app opens
         syncPendingBatchRecords()
-        
+
         // Start hourly automatic sync (only while app is open)
         startHourlySync()
         
@@ -405,19 +459,29 @@ class MainActivity : AppCompatActivity() {
     
     /**
      * Syncs steps to API when app closes (no rate limiting)
-     * Waits for GPS to be available before syncing
-     * Uses runOnUiThread for callback to ensure proper thread handling
      */
     private fun syncStepsToAPIOnResume() {
-        android.util.Log.d("MainActivity", "Syncing steps before app closes - waiting for GPS")
-        
-        // Get current data
+        android.util.Log.d("MainActivity", "Syncing steps before app closes")
+
         val userId = userPreferences.getUserId()
         val stepCount = userPreferences.getTotalStepCount()
         val timestamp = System.currentTimeMillis()
-        
-        // Wait for GPS to be available before syncing
-        waitForGPSAndSync(userId, stepCount, timestamp, maxRetries = 5, retryDelayMs = 2000L)
+
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                runOnUiThread {
+                    if (success) {
+                        userPreferences.setLastSyncTimestamp(timestamp)
+                        android.util.Log.d("MainActivity", "✓ Synced $stepCount steps")
+                    } else {
+                        android.util.Log.e("MainActivity", "✗ Failed to sync steps: $errorMessage")
+                    }
+                }
+            }
+        )
     }
     
     
@@ -425,243 +489,102 @@ class MainActivity : AppCompatActivity() {
      * Forces a sync to API Gateway endpoint (bypasses rate limiting)
      * Used for manual testing via button click
      * Made public so fragments can call it
-     * Waits for GPS to be available before syncing
      */
     fun forceSyncToAPI() {
-        android.util.Log.d("MainActivity", "Manual sync triggered by button - waiting for GPS")
-        
-        // Get current data
+        android.util.Log.d("MainActivity", "Manual sync triggered by button")
+
         val userId = userPreferences.getUserId()
         val stepCount = userPreferences.getTotalStepCount()
         val timestamp = System.currentTimeMillis()
-        
-        // Show loading toast
-        Toast.makeText(this, "Waiting for GPS...", Toast.LENGTH_SHORT).show()
-        
-        // Wait for GPS before syncing
-        waitForGPSAndSync(userId, stepCount, timestamp, maxRetries = 5, retryDelayMs = 2000L) { success, errorMessage ->
-            runOnUiThread {
-                if (success) {
-                    Toast.makeText(
-                        this,
-                        "✓ Synced successfully!\nSteps: $stepCount\nUser: ${userId.take(8)}...",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "✗ Sync failed: $errorMessage",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        }
-    }
-    
-    /**
-     * Waits for GPS to be available and then syncs
-     * Retries up to maxRetries times with retryDelayMs delay between attempts
-     * @param onComplete Optional callback to execute after sync (for manual syncs)
-     */
-    private fun waitForGPSAndSync(
-        userId: String,
-        stepCount: Int,
-        timestamp: Long,
-        maxRetries: Int = 5,
-        retryDelayMs: Long = 2000L,
-        currentRetry: Int = 0,
-        onComplete: ((Boolean, String?) -> Unit)? = null
-    ) {
-        val locationHelper = LocationHelper(this)
-        
-        locationHelper.getCurrentLocation { latitude, longitude ->
-            if (latitude != null && longitude != null) {
-                // GPS available - proceed with sync
-                android.util.Log.d("MainActivity", "GPS available (lat=$latitude, lng=$longitude) - syncing")
-                apiClient.syncSteps(
-                    userId = userId,
-                    stepCount = stepCount,
-                    timestamp = timestamp,
-                    latitude = latitude,
-                    longitude = longitude,
-                    callback = { success, errorMessage ->
-                        runOnUiThread {
-                            if (success) {
-                                // Update last sync timestamp on success
-                                userPreferences.setLastSyncTimestamp(timestamp)
-                                android.util.Log.d("MainActivity", "✓ Successfully synced $stepCount steps")
-                            } else {
-                                // Log error
-                                android.util.Log.e("MainActivity", "✗ Failed to sync steps: $errorMessage")
-                            }
-                            // Execute custom callback if provided
-                            onComplete?.invoke(success, errorMessage)
-                        }
+
+        Toast.makeText(this, "Syncing...", Toast.LENGTH_SHORT).show()
+
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                runOnUiThread {
+                    if (success) {
+                        userPreferences.setLastSyncTimestamp(timestamp)
+                        Toast.makeText(
+                            this,
+                            "✓ Synced!\nSteps: $stepCount\nUser: ${userId.take(8)}...",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "✗ Sync failed: $errorMessage",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
-                )
-            } else {
-                // GPS not available - retry if we haven't exceeded max retries
-                if (currentRetry < maxRetries) {
-                    android.util.Log.d("MainActivity", "GPS not available (attempt ${currentRetry + 1}/$maxRetries) - retrying in ${retryDelayMs}ms")
-                    mainHandler.postDelayed({
-                        waitForGPSAndSync(userId, stepCount, timestamp, maxRetries, retryDelayMs, currentRetry + 1, onComplete)
-                    }, retryDelayMs)
-                } else {
-                    android.util.Log.w("MainActivity", "GPS not available after $maxRetries attempts - syncing without GPS")
-                    // Sync without GPS as fallback
-                    apiClient.syncSteps(
-                        userId = userId,
-                        stepCount = stepCount,
-                        timestamp = timestamp,
-                        latitude = null,
-                        longitude = null,
-                        callback = { success, errorMessage ->
-                            runOnUiThread {
-                                if (success) {
-                                    userPreferences.setLastSyncTimestamp(timestamp)
-                                    android.util.Log.d("MainActivity", "✓ Synced $stepCount steps without GPS")
-                                } else {
-                                    android.util.Log.e("MainActivity", "✗ Failed to sync steps: $errorMessage")
-                                }
-                                // Execute custom callback if provided
-                                onComplete?.invoke(success, errorMessage)
-                            }
-                        }
-                    )
                 }
             }
-        }
+        )
     }
     
     /**
      * Syncs pending batch records to API when app opens
-     * Reads all locally stored step records and sends them in batch
-     * Waits for GPS to be available before syncing
      */
     private fun syncPendingBatchRecords() {
         try {
             val recordsJson = userPreferences.getPendingStepRecords()
             android.util.Log.d("MainActivity", "Pending records JSON: $recordsJson")
-            
+
             if (recordsJson.isEmpty() || recordsJson == "[]") {
                 android.util.Log.d("MainActivity", "No pending records to sync")
                 return
             }
-            
+
             val userId = userPreferences.getUserId()
-            android.util.Log.d("MainActivity", "Syncing batch for user: $userId - waiting for GPS")
-            
-            // Wait for GPS before syncing batch
-            waitForGPSAndSyncBatch(userId, recordsJson, maxRetries = 5, retryDelayMs = 2000L)
-            
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error syncing batch records: ${e.message}", e)
-            Toast.makeText(
-                this,
-                "Error: ${e.message}",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-    
-    /**
-     * Waits for GPS to be available and then syncs batch records
-     * Retries up to maxRetries times with retryDelayMs delay between attempts
-     */
-    private fun waitForGPSAndSyncBatch(
-        userId: String,
-        recordsJson: String,
-        maxRetries: Int = 5,
-        retryDelayMs: Long = 2000L,
-        currentRetry: Int = 0
-    ) {
-        val locationHelper = LocationHelper(this)
-        
-        locationHelper.getCurrentLocation { latitude, longitude ->
-            if (latitude != null && longitude != null) {
-                // GPS available - proceed with batch sync
-                // Note: batch records already have GPS data, but we verify GPS is working
-                android.util.Log.d("MainActivity", "GPS available (lat=$latitude, lng=$longitude) - syncing batch")
-                apiClient.syncStepsBatch(
-                    userId = userId,
-                    recordsJsonString = recordsJson,
-                    callback = { success, errorMessage ->
-                        runOnUiThread {
-                            if (success) {
-                                // Clear pending records on success
-                                userPreferences.clearPendingStepRecords()
-                                android.util.Log.d("MainActivity", "✓ Successfully synced batch")
-                                Toast.makeText(
-                                    this,
-                                    "✓ Synced batch",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            } else {
-                                // Keep records for retry
-                                android.util.Log.e("MainActivity", "✗ Failed to sync batch: $errorMessage")
-                                Toast.makeText(
-                                    this,
-                                    "Batch sync failed: ${errorMessage?.take(80) ?: "Unknown error"}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+            android.util.Log.d("MainActivity", "Syncing batch for user: $userId")
+
+            apiClient.syncStepsBatch(
+                userId = userId,
+                recordsJsonString = recordsJson,
+                callback = { success, errorMessage ->
+                    runOnUiThread {
+                        if (success) {
+                            userPreferences.clearPendingStepRecords()
+                            android.util.Log.d("MainActivity", "✓ Batch synced")
+                        } else {
+                            android.util.Log.e("MainActivity", "✗ Batch sync failed: $errorMessage")
                         }
                     }
-                )
-            } else {
-                // GPS not available - retry if we haven't exceeded max retries
-                if (currentRetry < maxRetries) {
-                    android.util.Log.d("MainActivity", "GPS not available for batch sync (attempt ${currentRetry + 1}/$maxRetries) - retrying in ${retryDelayMs}ms")
-                    mainHandler.postDelayed({
-                        waitForGPSAndSyncBatch(userId, recordsJson, maxRetries, retryDelayMs, currentRetry + 1)
-                    }, retryDelayMs)
-                } else {
-                    android.util.Log.w("MainActivity", "GPS not available after $maxRetries attempts - syncing batch without GPS verification")
-                    // Sync batch anyway (records already have GPS data from when they were created)
-                    apiClient.syncStepsBatch(
-                        userId = userId,
-                        recordsJsonString = recordsJson,
-                        callback = { success, errorMessage ->
-                            runOnUiThread {
-                                if (success) {
-                                    userPreferences.clearPendingStepRecords()
-                                    android.util.Log.d("MainActivity", "✓ Synced batch without GPS verification")
-                                    Toast.makeText(
-                                        this,
-                                        "✓ Synced batch",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } else {
-                                    android.util.Log.e("MainActivity", "✗ Failed to sync batch: $errorMessage")
-                                    Toast.makeText(
-                                        this,
-                                        "Batch sync failed: ${errorMessage?.take(80) ?: "Unknown error"}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
-                        }
-                    )
                 }
-            }
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error syncing batch records: ${e.message}", e)
         }
     }
     
     /**
      * Syncs step count to API Gateway endpoint
      * Rate limiting removed - hourly timer already controls frequency
-     * Waits for GPS to be available before syncing
      */
     private fun syncStepsToAPI() {
-        android.util.Log.d("MainActivity", "Automatic sync triggered (hourly) - waiting for GPS")
-        
-        // Get current data
+        android.util.Log.d("MainActivity", "Automatic sync triggered (hourly)")
+
         val userId = userPreferences.getUserId()
         val stepCount = userPreferences.getTotalStepCount()
         val timestamp = System.currentTimeMillis()
-        
-        // Wait for GPS before syncing
-        waitForGPSAndSync(userId, stepCount, timestamp, maxRetries = 5, retryDelayMs = 2000L)
+
+        apiClient.syncSteps(
+            userId = userId,
+            stepCount = stepCount,
+            timestamp = timestamp,
+            callback = { success, errorMessage ->
+                runOnUiThread {
+                    if (success) {
+                        userPreferences.setLastSyncTimestamp(timestamp)
+                        android.util.Log.d("MainActivity", "✓ Synced $stepCount steps")
+                    } else {
+                        android.util.Log.e("MainActivity", "✗ Failed to sync steps: $errorMessage")
+                    }
+                }
+            }
+        )
     }
 
     override fun onPause() {

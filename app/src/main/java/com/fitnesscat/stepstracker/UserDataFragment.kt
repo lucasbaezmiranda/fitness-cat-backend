@@ -137,6 +137,7 @@ class UserDataFragment : Fragment() {
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val view = super.getDropDownView(position, convertView, parent) as TextView
                 view.setTextColor(Color.BLACK)
+                view.setBackgroundColor(Color.WHITE)
                 return view
             }
         }
@@ -170,7 +171,8 @@ class UserDataFragment : Fragment() {
                 gender = if (gender.isNotEmpty()) gender else null,
                 country = if (country.isNotEmpty()) country else null,
                 city = if (city.isNotEmpty()) city else null,
-                urbanContext = if (urbanContext.isNotEmpty()) urbanContext else null
+                urbanContext = if (urbanContext.isNotEmpty()) urbanContext else null,
+                fcmToken = it.userPreferences.getFcmToken()
             )
 
             // Show confirmation

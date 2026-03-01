@@ -10,7 +10,7 @@
         .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.1); padding: 32px; max-width: 480px; width: 100%; }
         h1 { font-size: 1.4rem; margin-bottom: 24px; }
         label { display: block; font-weight: 600; margin-bottom: 4px; }
-        input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; margin-bottom: 16px; }
+        input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; margin-bottom: 16px; }
         textarea { resize: vertical; min-height: 80px; }
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; background: #4CAF50; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
         button:disabled { background: #aaa; cursor: not-allowed; }
@@ -19,6 +19,7 @@
         .error { background: #ffebee; color: #c62828; }
         .api-url { margin-bottom: 16px; }
         .api-url input { font-size: 0.85rem; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -28,6 +29,17 @@
     <div class="api-url">
         <label for="apiUrl">API URL</label>
         <input type="text" id="apiUrl" placeholder="https://XXXX.execute-api.us-east-1.amazonaws.com/prod">
+    </div>
+
+    <label for="mode">Mode</label>
+    <select id="mode" onchange="toggleNickname()">
+        <option value="all">All Users</option>
+        <option value="targeted">Targeted (by nickname)</option>
+    </select>
+
+    <div id="nicknameGroup" class="hidden">
+        <label for="nickname">Nickname</label>
+        <input type="text" id="nickname" placeholder="Enter user nickname">
     </div>
 
     <label for="title">Title</label>
@@ -42,8 +54,15 @@
 </div>
 
 <script>
+function toggleNickname() {
+    const mode = document.getElementById('mode').value;
+    document.getElementById('nicknameGroup').className = mode === 'targeted' ? '' : 'hidden';
+}
+
 async function send() {
     const apiUrl = document.getElementById('apiUrl').value.replace(/\/+$/, '');
+    const mode = document.getElementById('mode').value;
+    const nickname = document.getElementById('nickname').value.trim();
     const title = document.getElementById('title').value.trim();
     const body = document.getElementById('body').value.trim();
     const result = document.getElementById('result');
@@ -56,22 +75,35 @@ async function send() {
         return;
     }
 
+    if (mode === 'targeted' && !nickname) {
+        result.style.display = 'block';
+        result.className = 'error';
+        result.textContent = 'Please enter a nickname for targeted notification.';
+        return;
+    }
+
     btn.disabled = true;
     btn.textContent = 'Sending...';
     result.style.display = 'none';
+
+    const payload = { title, body };
+    if (mode === 'targeted') {
+        payload.nickname = nickname;
+    }
 
     try {
         const res = await fetch(apiUrl + '/send-notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, body })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
 
         result.style.display = 'block';
         if (data.ok) {
             result.className = 'success';
-            result.textContent = 'Notification sent successfully!';
+            const target = data.target ? ` to "${data.target}"` : ' to all users';
+            result.textContent = 'Notification sent successfully' + target + '!';
         } else {
             result.className = 'error';
             result.textContent = 'Error: ' + (data.error || JSON.stringify(data));

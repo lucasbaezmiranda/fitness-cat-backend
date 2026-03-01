@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -7,98 +7,222 @@
     android:padding="16dp"
     tools:context=".DevFragment">
 
-    <TextView
-        android:id="@+id/devTitleText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Dev Info"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginTop="32dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <LinearLayout
-        android:id="@+id/buttonsContainer"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/devTitleText">
+        android:orientation="vertical">
 
-        <Button
-            android:id="@+id/saveLogsButton"
+        <TextView
+            android:id="@+id/devTitleText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Save logs"
-            android:layout_marginEnd="8dp" />
+            android:text="Dev Info"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_gravity="center_horizontal" />
 
-        <Button
-            android:id="@+id/exportStepsButton"
-            android:layout_width="wrap_content"
+        <!-- GPS section -->
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Export steps" />
-
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/locationText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="GPS: Getting location..."
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="#4CAF50"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonsContainer" />
-
-    <ScrollView
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/locationText"
-        app:layout_constraintBottom_toBottomOf="parent">
+            android:text="GPS"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:id="@+id/gpsPermissionDot"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@android:color/holo_red_dark" />
 
             <TextView
-                android:id="@+id/devStatusText"
-                android:layout_width="match_parent"
+                android:id="@+id/gpsPermissionLabel"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Status: Waiting..."
-                android:textSize="12sp"
-                android:fontFamily="monospace"
-                android:padding="12dp"
-                android:background="#F5F5F5"
-                android:layout_marginBottom="16dp" />
-
-            <TextView
-                android:id="@+id/devLogsText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Logs:\n(Waiting for events...)"
-                android:textSize="10sp"
-                android:fontFamily="monospace"
-                android:padding="12dp"
-                android:background="#000000"
-                android:textColor="#00FF00"
-                android:maxLines="50"
-                android:scrollbars="vertical" />
-
+                android:text="Permiso: —"
+                android:textSize="14sp"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
 
-    </ScrollView>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <View
+                android:id="@+id/gpsEnabledDot"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@android:color/holo_red_dark" />
 
+            <TextView
+                android:id="@+id/gpsEnabledLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GPS: —"
+                android:textSize="14sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/gpsLocationText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ubicacion: —"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+
+        <!-- Sensors section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sensores"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:id="@+id/stepSensorDot"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@android:color/holo_red_dark" />
+
+            <TextView
+                android:id="@+id/stepSensorLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Step Counter: —"
+                android:textSize="14sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:id="@+id/serviceDot"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@android:color/holo_red_dark" />
+
+            <TextView
+                android:id="@+id/serviceLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Servicio: —"
+                android:textSize="14sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <!-- Permissions section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Permisos"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:id="@+id/permActivityDot"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@android:color/holo_red_dark" />
+
+            <TextView
+                android:id="@+id/permActivityLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Activity Recognition: —"
+                android:textSize="14sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:id="@+id/permNotifDot"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="@android:color/holo_red_dark" />
+
+            <TextView
+                android:id="@+id/permNotifLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notificaciones: —"
+                android:textSize="14sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <!-- Info section -->
+        <TextView
+            android:id="@+id/devStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:padding="12dp"
+            android:background="#F5F5F5"
+            android:layout_marginTop="24dp" />
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:layout_gravity="center_horizontal">
+
+            <Button
+                android:id="@+id/saveLogsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save logs"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/exportStepsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Export steps" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

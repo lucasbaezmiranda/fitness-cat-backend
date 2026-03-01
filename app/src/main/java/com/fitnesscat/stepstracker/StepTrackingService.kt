@@ -169,16 +169,20 @@ class StepTrackingService : Service(), SensorEventListener {
     
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            // Delete old channel if it exists (to force importance update)
+            try { notificationManager.deleteNotificationChannel("StepTrackingChannel") } catch (_: Exception) {}
+
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Step Tracking",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_MIN
             ).apply {
                 description = "Tracks your steps in the background"
                 setShowBadge(false)
             }
-            
-            val notificationManager = getSystemService(NotificationManager::class.java)
+
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -189,14 +193,16 @@ class StepTrackingService : Service(), SensorEventListener {
             this, 0, intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        
+
+        val dailySteps = userPreferences.getTodayStepCount()
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Step Tracker Running")
-            .setContentText("Tracking your steps: $totalStepCount")
+            .setContentTitle("Fitness Cat")
+            .setContentText("$dailySteps pasos hoy")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
     }
     
@@ -315,7 +321,7 @@ class StepTrackingService : Service(), SensorEventListener {
     }
     
     companion object {
-        private const val CHANNEL_ID = "StepTrackingChannel"
+        private const val CHANNEL_ID = "StepTrackingChannelV2"
         private const val NOTIFICATION_ID = 1
     }
 }

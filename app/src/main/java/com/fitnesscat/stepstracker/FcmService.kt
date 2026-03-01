@@ -26,7 +26,22 @@ class FcmService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        android.util.Log.d("FcmService", "New FCM token: $token")
+        android.util.Log.d("FcmService", "New FCM token: ${token.take(10)}...")
+
+        val userPreferences = UserPreferences(this)
+        userPreferences.setFcmToken(token)
+
+        val apiClient = ApiClient()
+        apiClient.syncUserProfile(
+            userId = userPreferences.getUserId(),
+            nickname = userPreferences.getNickname(),
+            age = userPreferences.getAge(),
+            gender = userPreferences.getGender(),
+            country = userPreferences.getCountry(),
+            city = userPreferences.getCity(),
+            urbanContext = userPreferences.getUrbanContext(),
+            fcmToken = token
+        )
     }
 
     private fun showNotification(title: String, body: String) {

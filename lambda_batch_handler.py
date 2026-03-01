@@ -1,5 +1,6 @@
 import json
 import time
+from decimal import Decimal
 import boto3
 
 dynamodb = boto3.resource("dynamodb")
@@ -13,17 +14,19 @@ def lambda_handler(event, context):
     {
         "user_id": "abc123def456_1234567890",
         "records": [
-            {"steps_at_time": 100, "timestamp": 1704123456},
-            {"steps_at_time": 250, "timestamp": 1704125256},
+            {"steps": 100, "timestamp": 1704123456, "latitude": 40.7128, "longitude": -74.0060},
+            {"steps": 250, "timestamp": 1704125256},
             ...
         ]
     }
-    
+
     Individual format:
     {
         "user_id": "abc123def456_1234567890",
         "steps": 1234,
-        "timestamp": 1704123456
+        "timestamp": 1704123456,
+        "latitude": 40.7128,
+        "longitude": -74.0060
     }
     """
     try:
@@ -44,10 +47,20 @@ def lambda_handler(event, context):
                 # Handle both "steps_at_time" (from batch) and "steps" (fallback)
                 steps = record.get("steps_at_time") or record.get("steps", 0)
                 timestamp = record.get("timestamp")
-                records.append({"steps": steps, "timestamp": timestamp})
+                r = {"steps": steps, "timestamp": timestamp}
+                if record.get("latitude") is not None:
+                    r["latitude"] = record["latitude"]
+                if record.get("longitude") is not None:
+                    r["longitude"] = record["longitude"]
+                records.append(r)
         elif "steps" in body:
             # Individual sync: create single record
-            records = [{"steps": body["steps"], "timestamp": body.get("timestamp")}]
+            r = {"steps": body["steps"], "timestamp": body.get("timestamp")}
+            if body.get("latitude") is not None:
+                r["latitude"] = body["latitude"]
+            if body.get("longitude") is not None:
+                r["longitude"] = body["longitude"]
+            records = [r]
         else:
             return {
                 "statusCode": 400,
@@ -77,13 +90,17 @@ def lambda_handler(event, context):
                 # Add index to ensure uniqueness (important if multiple records have same timestamp)
                 unique_ts = ts_base + i
                 
-                batch.put_item(
-                    Item={
-                        "user_id": str(user_id),
-                        "timestamp": unique_ts,
-                        "steps": int(record.get("steps", 0))
-                    }
-                )
+                item = {
+                    "user_id": str(user_id),
+                    "timestamp": unique_ts,
+                    "steps": int(record.get("steps", 0)),
+                }
+                if record.get("latitude") is not None:
+                    item["latitude"] = Decimal(str(record["latitude"]))
+                if record.get("longitude") is not None:
+                    item["longitude"] = Decimal(str(record["longitude"]))
+
+                batch.put_item(Item=item)
                 written_count += 1
         
         return {

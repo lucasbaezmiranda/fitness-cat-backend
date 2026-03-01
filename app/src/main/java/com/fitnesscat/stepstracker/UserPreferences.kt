@@ -37,6 +37,19 @@ class UserPreferences(context: Context) {
         private const val KEY_DAILY_STEP_COUNT = "daily_step_count"  // Steps for current day
         private const val KEY_DAILY_STEP_DATE = "daily_step_date"  // Date of last daily step reset (YYYY-MM-DD)
         private const val KEY_TOTAL_STEPS_AT_DAY_START = "total_steps_at_day_start"  // Total steps at start of current day
+        private const val KEY_FCM_TOKEN = "fcm_token"  // Firebase Cloud Messaging token
+        private const val KEY_PENDING_ACTIVITY_RECORDS = "pending_activity_records"  // JSON array of pending activity records
+        // Activity accumulation keys
+        private const val KEY_ACT_LAST_TYPE = "act_last_type"
+        private const val KEY_ACT_LAST_TIMESTAMP = "act_last_timestamp"
+        private const val KEY_ACT_MIN_WALKING = "act_min_walking"
+        private const val KEY_ACT_MIN_RUNNING = "act_min_running"
+        private const val KEY_ACT_MIN_ON_FOOT = "act_min_on_foot"
+        private const val KEY_ACT_MIN_IN_VEHICLE = "act_min_in_vehicle"
+        private const val KEY_ACT_MIN_ON_BICYCLE = "act_min_on_bicycle"
+        private const val KEY_ACT_MIN_STILL = "act_min_still"
+        private const val KEY_ACT_MIN_UNKNOWN = "act_min_unknown"
+        private const val KEY_ACT_LAST_UPDATE_MS = "act_last_update_ms"  // System.currentTimeMillis of last AR callback
     }
 
     fun getUserId(): String {
@@ -192,16 +205,96 @@ class UserPreferences(context: Context) {
     }
     
     /**
-     * Saves current activity (type and name)
+     * Called when Activity Recognition detects a new activity.
+     * Accumulates elapsed time for the previous activity, then updates current.
      */
-    fun setCurrentActivity(activityType: Int, activityName: String) {
+    fun onActivityChanged(newType: Int, newName: String) {
+        val now = System.currentTimeMillis() / 1000
+        val lastType = prefs.getInt(KEY_ACT_LAST_TYPE, com.google.android.gms.location.DetectedActivity.UNKNOWN)
+        val lastTimestamp = prefs.getLong(KEY_ACT_LAST_TIMESTAMP, 0L)
+
+        if (lastTimestamp > 0) {
+            val elapsedSeconds = now - lastTimestamp
+            val elapsedMinutes = (elapsedSeconds / 60).toInt().coerceAtMost(60) // cap at 60min to avoid stale data
+            if (elapsedMinutes > 0) {
+                val key = getAccumulatorKey(lastType)
+                val current = prefs.getInt(key, 0)
+                prefs.edit().putInt(key, current + elapsedMinutes).apply()
+            }
+        }
+
         prefs.edit()
-            .putInt(KEY_CURRENT_ACTIVITY_TYPE, activityType)
-            .putString(KEY_CURRENT_ACTIVITY_NAME, activityName)
+            .putInt(KEY_ACT_LAST_TYPE, newType)
+            .putInt(KEY_CURRENT_ACTIVITY_TYPE, newType)
+            .putString(KEY_CURRENT_ACTIVITY_NAME, newName)
+            .putLong(KEY_ACT_LAST_TIMESTAMP, now)
+            .putLong(KEY_ACT_LAST_UPDATE_MS, System.currentTimeMillis())
             .apply()
-        android.util.Log.d("UserPreferences", "Saved current activity: $activityName (type: $activityType)")
+        android.util.Log.d("UserPreferences", "Activity changed: $newName (type: $newType)")
+    }
+
+    private fun getAccumulatorKey(activityType: Int): String {
+        return when (activityType) {
+            com.google.android.gms.location.DetectedActivity.WALKING -> KEY_ACT_MIN_WALKING
+            com.google.android.gms.location.DetectedActivity.RUNNING -> KEY_ACT_MIN_RUNNING
+            com.google.android.gms.location.DetectedActivity.ON_FOOT -> KEY_ACT_MIN_ON_FOOT
+            com.google.android.gms.location.DetectedActivity.IN_VEHICLE -> KEY_ACT_MIN_IN_VEHICLE
+            com.google.android.gms.location.DetectedActivity.ON_BICYCLE -> KEY_ACT_MIN_ON_BICYCLE
+            com.google.android.gms.location.DetectedActivity.STILL -> KEY_ACT_MIN_STILL
+            else -> KEY_ACT_MIN_UNKNOWN
+        }
+    }
+
+    /**
+     * Finalizes the current ongoing activity (adds elapsed time since last change)
+     * and returns all accumulated minutes. Call this from StepWorker before resetting.
+     */
+    fun finalizeAndGetAccumulators(): Map<String, Int> {
+        val now = System.currentTimeMillis() / 1000
+        val currentType = prefs.getInt(KEY_ACT_LAST_TYPE, com.google.android.gms.location.DetectedActivity.UNKNOWN)
+        val lastTimestamp = prefs.getLong(KEY_ACT_LAST_TIMESTAMP, 0L)
+
+        // Finalize the current ongoing activity
+        if (lastTimestamp > 0) {
+            val elapsed = now - lastTimestamp
+            val minutes = (elapsed / 60).toInt().coerceAtMost(30) // cap at 30 min (worker interval)
+            if (minutes > 0) {
+                val key = getAccumulatorKey(currentType)
+                val current = prefs.getInt(key, 0)
+                prefs.edit().putInt(key, current + minutes).apply()
+            }
+        }
+        // Update last timestamp to now (next window starts here)
+        prefs.edit().putLong(KEY_ACT_LAST_TIMESTAMP, now).apply()
+
+        return mapOf(
+            "walking_min" to prefs.getInt(KEY_ACT_MIN_WALKING, 0),
+            "running_min" to prefs.getInt(KEY_ACT_MIN_RUNNING, 0),
+            "on_foot_min" to prefs.getInt(KEY_ACT_MIN_ON_FOOT, 0),
+            "in_vehicle_min" to prefs.getInt(KEY_ACT_MIN_IN_VEHICLE, 0),
+            "on_bicycle_min" to prefs.getInt(KEY_ACT_MIN_ON_BICYCLE, 0),
+            "still_min" to prefs.getInt(KEY_ACT_MIN_STILL, 0),
+            "unknown_min" to prefs.getInt(KEY_ACT_MIN_UNKNOWN, 0)
+        )
+    }
+
+    fun resetActivityAccumulators() {
+        prefs.edit()
+            .putInt(KEY_ACT_MIN_WALKING, 0)
+            .putInt(KEY_ACT_MIN_RUNNING, 0)
+            .putInt(KEY_ACT_MIN_ON_FOOT, 0)
+            .putInt(KEY_ACT_MIN_IN_VEHICLE, 0)
+            .putInt(KEY_ACT_MIN_ON_BICYCLE, 0)
+            .putInt(KEY_ACT_MIN_STILL, 0)
+            .putInt(KEY_ACT_MIN_UNKNOWN, 0)
+            .apply()
+        android.util.Log.d("UserPreferences", "Reset activity accumulators")
     }
     
+    fun getLastActivityUpdateMs(): Long {
+        return prefs.getLong(KEY_ACT_LAST_UPDATE_MS, 0L)
+    }
+
     fun getCatPiel(): Int = prefs.getInt(KEY_CAT_PIEL, 0)
     fun setCatPiel(v: Int) { prefs.edit().putInt(KEY_CAT_PIEL, v).apply() }
 
@@ -325,10 +418,54 @@ class UserPreferences(context: Context) {
         return todaySteps
     }
     
+    fun getFcmToken(): String? {
+        return prefs.getString(KEY_FCM_TOKEN, null)
+    }
+
+    fun setFcmToken(token: String) {
+        prefs.edit().putString(KEY_FCM_TOKEN, token).apply()
+        android.util.Log.d("UserPreferences", "Saved FCM token: ${token.take(10)}...")
+    }
+
     /**
      * Initializes daily step tracking when app starts
      * Should be called on app startup to ensure proper daily reset
      */
+    // --- Pending activity records ---
+
+    fun getPendingActivityRecords(): String {
+        return prefs.getString(KEY_PENDING_ACTIVITY_RECORDS, "[]") ?: "[]"
+    }
+
+    fun savePendingActivityRecords(jsonString: String) {
+        prefs.edit().putString(KEY_PENDING_ACTIVITY_RECORDS, jsonString).apply()
+    }
+
+    fun addPendingActivityRecord(accumulators: Map<String, Int>, timestamp: Long) {
+        try {
+            val pendingJson = getPendingActivityRecords()
+
+            val fields = accumulators.entries.joinToString(",") { (k, v) -> "\"$k\":$v" }
+            val newRecord = "{\"timestamp\":$timestamp,$fields}"
+
+            val updatedJson = if (pendingJson == "[]") {
+                "[$newRecord]"
+            } else {
+                pendingJson.dropLast(1) + ",$newRecord]"
+            }
+
+            savePendingActivityRecords(updatedJson)
+            android.util.Log.d("UserPreferences", "Added pending activity record: $newRecord")
+        } catch (e: Exception) {
+            android.util.Log.e("UserPreferences", "Error adding pending activity record: ${e.message}", e)
+        }
+    }
+
+    fun clearPendingActivityRecords() {
+        prefs.edit().putString(KEY_PENDING_ACTIVITY_RECORDS, "[]").apply()
+        android.util.Log.d("UserPreferences", "Cleared all pending activity records")
+    }
+
     fun initializeDailyStepTracking(totalSteps: Int) {
         val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
         val lastDate = prefs.getString(KEY_DAILY_STEP_DATE, null)
