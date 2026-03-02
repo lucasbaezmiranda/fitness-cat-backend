@@ -153,16 +153,24 @@ class DevFragment : Fragment() {
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
+        val hasCoarseLocation = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val hasAnyLocation = hasFineLocation || hasCoarseLocation
+
         val hasBackgroundLocation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContextCompat.checkSelfPermission(
                 context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         } else true
 
-        setDotColor(gpsPermissionDot, hasFineLocation && hasBackgroundLocation)
+        setDotColor(gpsPermissionDot, hasAnyLocation && hasBackgroundLocation)
         gpsPermissionLabel.text = when {
-            hasFineLocation && hasBackgroundLocation -> "Permiso: OK (foreground + background)"
-            hasFineLocation -> "Permiso: Solo foreground (falta background)"
+            hasFineLocation && hasBackgroundLocation -> "Permiso: OK exacta + background"
+            hasCoarseLocation && hasBackgroundLocation -> "Permiso: OK aproximada + background"
+            hasFineLocation -> "Permiso: Solo exacta (falta background)"
+            hasCoarseLocation -> "Permiso: Solo aproximada (falta background)"
             else -> "Permiso: DENEGADO"
         }
 
@@ -172,7 +180,7 @@ class DevFragment : Fragment() {
         gpsEnabledLabel.text = if (gpsEnabled) "GPS: Activado" else "GPS: DESACTIVADO"
 
         // Get last known location for display
-        if (hasFineLocation) {
+        if (hasAnyLocation) {
             try {
                 val fusedClient = LocationServices.getFusedLocationProviderClient(context)
                 fusedClient.lastLocation.addOnSuccessListener { location ->

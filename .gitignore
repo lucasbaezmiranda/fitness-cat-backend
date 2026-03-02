@@ -7,7 +7,6 @@ build/
 .externalNativeBuild/
 .cxx/
 captures/
-notebooks/
 luke_docs/
 infra/
 
