@@ -6,6 +6,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -13,11 +15,23 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.Location
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.Tasks
+import java.io.File
+import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /**
  * Foreground service that continuously tracks steps in the background
@@ -28,9 +42,13 @@ class StepTrackingService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepCounterSensor: Sensor? = null
     private lateinit var userPreferences: UserPreferences
-    
+
     private var lastSensorValue: Float = 0f
     private var totalStepCount: Int = 0
+
+    // GPS recording every 7.5 minutes (8 points per hour)
+    private val gpsHandler = Handler(Looper.getMainLooper())
+    private var gpsRunnable: Runnable? = null
     
     override fun onCreate() {
         super.onCreate()
@@ -132,6 +150,7 @@ class StepTrackingService : Service(), SensorEventListener {
                 AppLogger.log("StepTrackingService", "State: steps=$totalStepCount, sensor=$lastSensorValue")
                 AppLogger.log("StepTrackingService", "Calling startStepTracking()...")
                 startStepTracking()
+                startGpsRecording()
             } else {
                 if (!hasPermission) {
                     android.util.Log.w("StepTrackingService", "Activity Recognition permission not granted - stopping service")
@@ -311,18 +330,116 @@ class StepTrackingService : Service(), SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not needed
     }
-    
+
+    // --- GPS recording every 7.5 minutes ---
+
+    private fun startGpsRecording() {
+        gpsRunnable = object : Runnable {
+            override fun run() {
+                recordGpsAndSteps()
+                gpsHandler.postDelayed(this, GPS_RECORD_INTERVAL_MS)
+            }
+        }
+        // First recording after 7.5 minutes
+        gpsRunnable?.let { gpsHandler.postDelayed(it, GPS_RECORD_INTERVAL_MS) }
+        Log.d(TAG, "Started GPS recording every ${GPS_RECORD_INTERVAL_MS / 1000}s")
+        AppLogger.log(TAG, "Started GPS recording every ${GPS_RECORD_INTERVAL_MS / 1000}s")
+    }
+
+    private fun recordGpsAndSteps() {
+        val timestamp = System.currentTimeMillis() / 1000
+
+        // Get GPS location on background thread
+        Thread {
+            val location = getLastKnownLocation()
+            val latitude = location?.latitude
+            val longitude = location?.longitude
+
+            Log.d(TAG, "GPS record: steps=$totalStepCount, lat=$latitude, lng=$longitude")
+            AppLogger.log(TAG, "GPS record: steps=$totalStepCount, lat=$latitude, lng=$longitude")
+
+            try {
+                userPreferences.addPendingStepRecord(totalStepCount, timestamp, latitude, longitude)
+                saveStepCountToFile(totalStepCount, timestamp)
+                updateWidget()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error recording GPS+steps: ${e.message}", e)
+            }
+        }.start()
+    }
+
+    private fun getLastKnownLocation(): Location? {
+        val hasFineLocation = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val hasCoarseLocation = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFineLocation && !hasCoarseLocation) {
+            Log.w(TAG, "No location permission - skipping GPS")
+            return null
+        }
+
+        return try {
+            val fusedClient = LocationServices.getFusedLocationProviderClient(this)
+            val location = Tasks.await(fusedClient.lastLocation, LOCATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            if (location != null) {
+                Log.d(TAG, "Got location: ${location.latitude}, ${location.longitude}")
+            } else {
+                Log.w(TAG, "Last location is null")
+            }
+            location
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException getting location: ${e.message}")
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting location: ${e.message}")
+            null
+        }
+    }
+
+    private fun saveStepCountToFile(stepCount: Int, timestamp: Long) {
+        val stepsDir = getExternalFilesDir("steps") ?: return
+        if (!stepsDir.exists()) stepsDir.mkdirs()
+
+        val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
+        val file = File(stepsDir, "steps_$dateStr.txt")
+
+        FileWriter(file, true).use { it.append("$timestamp,$stepCount\n") }
+        Log.d(TAG, "Saved to file: ${file.absolutePath}")
+    }
+
+    private fun updateWidget() {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(this)
+            val widgetIds = appWidgetManager.getAppWidgetIds(
+                ComponentName(this, StepsWidgetProvider::class.java)
+            )
+            if (widgetIds.isNotEmpty()) {
+                StepsWidgetProvider().onUpdate(this, appWidgetManager, widgetIds)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update widget: ${e.message}")
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
+        gpsRunnable?.let { gpsHandler.removeCallbacks(it) }
         // Save final state
         userPreferences.setTotalStepCount(totalStepCount)
         userPreferences.setLastSensorValue(lastSensorValue)
     }
-    
+
     companion object {
+        private const val TAG = "StepTrackingService"
         private const val CHANNEL_ID = "StepTrackingChannelV2"
         private const val NOTIFICATION_ID = 1
+        private const val GPS_RECORD_INTERVAL_MS = 450_000L // 7.5 minutes
+        private const val LOCATION_TIMEOUT_SECONDS = 10L
     }
 }
 

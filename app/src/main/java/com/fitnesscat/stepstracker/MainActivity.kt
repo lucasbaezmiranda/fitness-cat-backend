@@ -18,13 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.firebase.messaging.FirebaseMessaging
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
     
@@ -108,9 +102,8 @@ class MainActivity : AppCompatActivity() {
         // Inicializar tracking de pasos diarios
         userPreferences.initializeDailyStepTracking(userPreferences.getTotalStepCount())
         
-        // Schedule periodic step reading (every 1 hour)
-        schedulePeriodicStepReading()
-        
+        // GPS+steps recording is now handled by StepTrackingService every 7.5 min
+
         // Request permissions FIRST, then setup
         requestPermissions()
         
@@ -153,33 +146,6 @@ class MainActivity : AppCompatActivity() {
         requestLocationPermissions()
     }
     
-    /**
-     * Schedules StepWorker to run every 10 minutes to save step records and GPS location.
-     * Uses minimal constraints to work on restrictive devices like Motorola.
-     */
-    private fun schedulePeriodicStepReading() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            .setRequiresBatteryNotLow(false)
-            .setRequiresCharging(false)
-            .setRequiresDeviceIdle(false)
-            .build()
-
-        val periodicWork = PeriodicWorkRequestBuilder<StepWorker>(
-            10, TimeUnit.MINUTES
-        )
-            .setConstraints(constraints)
-            .setInitialDelay(10, TimeUnit.MINUTES)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "StepWorker",
-            ExistingPeriodicWorkPolicy.UPDATE,
-            periodicWork
-        )
-
-        android.util.Log.d("MainActivity", "Scheduled StepWorker to run every 10 minutes")
-    }
     
     /**
      * Requests user to disable battery optimization for this app
