@@ -142,8 +142,8 @@ class MainActivity : AppCompatActivity() {
         // Request battery optimization exemption (important for Motorola and other restrictive devices)
         requestBatteryOptimizationExemption()
 
-        // Request location permissions for GPS tracking
-        requestLocationPermissions()
+        // Location permissions are requested after activity/notification permissions are granted
+        // (see onRequestPermissionsResult) to avoid Android ignoring the second dialog
     }
     
     
@@ -255,6 +255,9 @@ class MainActivity : AppCompatActivity() {
                 android.util.Log.d("MainActivity", "Retrying service start after 2 seconds (already had permissions)...")
                 startStepTrackingService()
             }, 2000)
+
+            // Request location permissions (won't conflict since no other dialog is open)
+            requestLocationPermissions()
         }
     }
 
@@ -281,7 +284,12 @@ class MainActivity : AppCompatActivity() {
                     android.util.Log.d("MainActivity", "Retrying service start after 2 seconds...")
                     startStepTrackingService()
                 }, 2000)
-            } else {
+            }
+
+            // Request location permissions after activity/notification dialog closes
+            requestLocationPermissions()
+
+            if (!allGranted) {
                 Toast.makeText(
                     this,
                     getString(R.string.permission_denied),
