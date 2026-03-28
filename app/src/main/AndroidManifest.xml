@@ -63,16 +63,43 @@
             </intent-filter>
         </service>
 
-        <!-- Steps Widget -->
+        <!-- Steps Widget (green) -->
         <receiver
             android:name=".StepsWidgetProvider"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.fitnesscat.stepstracker.WIDGET_UPDATE_GREEN" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/steps_widget_info" />
+        </receiver>
+
+        <!-- Steps Widget (hungry cat) -->
+        <receiver
+            android:name=".StepsWidgetHungryProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.fitnesscat.stepstracker.WIDGET_UPDATE_HUNGRY" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_hungry_info" />
+        </receiver>
+
+        <!-- Steps Widget (mad cat) -->
+        <receiver
+            android:name=".StepsWidgetMadProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.fitnesscat.stepstracker.WIDGET_UPDATE_MAD" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_mad_info" />
         </receiver>
     </application>
 

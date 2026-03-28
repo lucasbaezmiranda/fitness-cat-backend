@@ -1,11 +1,14 @@
 package com.fitnesscat.stepstracker
 
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.widget.RemoteViews
 
-class StepsWidgetProvider : AppWidgetProvider() {
+class StepsWidgetProvider : BaseCatWidgetProvider() {
+
+    override val layoutResId = R.layout.widget_steps
+    override val stepCountViewId = R.id.widget_step_count
+    override val alarmAction = "com.fitnesscat.stepstracker.WIDGET_UPDATE_GREEN"
 
     override fun onUpdate(
         context: Context,
