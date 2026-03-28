@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Fitness Cat - Step Tracker</string>
+    <string name="app_name">Fitness Cat - user</string>
     <string name="steps_label">Steps Today</string>
     <string name="user_id_label">User ID</string>
     <string name="last_sync_label">Last Synced</string>

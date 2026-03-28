@@ -20,13 +20,15 @@ class UserPreferences(context: Context) {
         private const val KEY_LAST_SENSOR_VALUE = "last_sensor_value"  // Last sensor reading
         private const val KEY_PENDING_STEP_RECORDS = "pending_step_records"  // JSON array of pending records
         private const val KEY_CURRENT_STAGE = "current_stage"  // Current stage (1-5)
-        private const val KEY_CURRENT_HEALTH = "current_health"  // Current health (0-100)
+        private const val KEY_CURRENT_HEALTH = "current_health"  // Current health (0-80)
+        const val MAX_HEALTH = 80
+        const val INITIAL_HEALTH = 60
         private const val KEY_CURRENT_ACTIVITY_TYPE = "current_activity_type"  // Activity type constant
         private const val KEY_CURRENT_ACTIVITY_NAME = "current_activity_name"  // Activity name (human-readable)
-        private const val KEY_CAT_PIEL    = "cat_piel"    // 0 o 1
-        private const val KEY_CAT_MANCHAS = "cat_manchas"  // 0 o 1
-        private const val KEY_CAT_OJOS    = "cat_ojos"     // 0 o 1
-        private const val KEY_CAT_OREJAS  = "cat_orejas"   // 0 o 1
+        private const val KEY_CAT_PIEL    = "cat_piel"    // 0-3
+        private const val KEY_CAT_MANCHAS = "cat_manchas"  // 0-3
+        private const val KEY_CAT_OJOS    = "cat_ojos"     // 0-2
+        private const val KEY_CAT_OREJAS  = "cat_orejas"   // 0-1
         private const val KEY_NICKNAME = "nickname"  // User nickname
         private const val KEY_AGE = "age"  // User age
         private const val KEY_GENDER = "gender"  // User gender
@@ -176,18 +178,55 @@ class UserPreferences(context: Context) {
     }
     
     /**
-     * Gets current health (0-100), default is 100
+     * Gets current health (0-80), default is 60
      */
     fun getCurrentHealth(): Int {
-        return prefs.getInt(KEY_CURRENT_HEALTH, 100)
+        return prefs.getInt(KEY_CURRENT_HEALTH, INITIAL_HEALTH)
     }
-    
+
     /**
-     * Saves current health (0-100)
+     * Saves current health (0-80)
      */
     fun setCurrentHealth(health: Int) {
         prefs.edit().putInt(KEY_CURRENT_HEALTH, health).apply()
         android.util.Log.d("UserPreferences", "Saved current health: $health")
+    }
+
+    /**
+     * Converts a health value to its corresponding cat stage.
+     * 0      → stage 1
+     * 1-20   → stage 2
+     * 21-40  → stage 3
+     * 41-60  → stage 4
+     * 61-80  → stage 5
+     */
+    fun healthToStage(health: Int): Int = when {
+        health <= 0  -> 1
+        health <= 20 -> 2
+        health <= 40 -> 3
+        health <= 60 -> 4
+        else         -> 5
+    }
+
+    /**
+     * Applies the daily health delta based on yesterday's step count.
+     * >5000 steps → +5 HP, <3000 steps → -3 HP, otherwise no change.
+     * Health is clamped to [0, MAX_HEALTH].
+     */
+    private fun applyDailyHealthUpdate(yesterdaySteps: Int) {
+        val delta = when {
+            yesterdaySteps > 5000 -> 5
+            yesterdaySteps < 3000 -> -3
+            else -> 0
+        }
+        if (delta != 0) {
+            val current = getCurrentHealth()
+            val newHealth = (current + delta).coerceIn(0, MAX_HEALTH)
+            setCurrentHealth(newHealth)
+            setCurrentStage(healthToStage(newHealth))
+            android.util.Log.d("UserPreferences",
+                "Daily health update: yesterdaySteps=$yesterdaySteps, delta=$delta, $current -> $newHealth")
+        }
     }
     
     /**
@@ -364,7 +403,7 @@ class UserPreferences(context: Context) {
         android.util.Log.d("UserPreferences", "Saved gender: $gender")
     }
     
-    fun getCountry(): String? = prefs.getString(KEY_COUNTRY, null)
+    fun getCountry(): String? = prefs.getString(KEY_COUNTRY, "Norway")
     fun setCountry(v: String?) { prefs.edit().putString(KEY_COUNTRY, v).apply() }
 
     fun getCity(): String? = prefs.getString(KEY_CITY, null)
@@ -397,8 +436,13 @@ class UserPreferences(context: Context) {
         val lastDate = prefs.getString(KEY_DAILY_STEP_DATE, null)
         val totalSteps = getTotalStepCount()
         
-        // If date changed, reset daily tracking
+        // If date changed, apply health update for yesterday then reset
         if (lastDate != today) {
+            if (lastDate != null) {
+                val totalAtStartOfDay = prefs.getInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps)
+                val yesterdaySteps = (totalSteps - totalAtStartOfDay).coerceAtLeast(0)
+                applyDailyHealthUpdate(yesterdaySteps)
+            }
             prefs.edit()
                 .putString(KEY_DAILY_STEP_DATE, today)
                 .putInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps)
@@ -471,6 +515,12 @@ class UserPreferences(context: Context) {
         val lastDate = prefs.getString(KEY_DAILY_STEP_DATE, null)
         
         if (lastDate != today) {
+            // Apply health update for the previous day before resetting
+            if (lastDate != null) {
+                val totalAtStartOfDay = prefs.getInt(KEY_TOTAL_STEPS_AT_DAY_START, totalSteps)
+                val yesterdaySteps = (totalSteps - totalAtStartOfDay).coerceAtLeast(0)
+                applyDailyHealthUpdate(yesterdaySteps)
+            }
             // New day - reset and save starting point
             prefs.edit()
                 .putString(KEY_DAILY_STEP_DATE, today)

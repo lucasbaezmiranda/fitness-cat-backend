@@ -11,8 +11,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 
 class UserFragment : Fragment() {
@@ -28,18 +26,16 @@ class UserFragment : Fragment() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var stepUpdateRunnable: Runnable? = null
     
-    // Current stage (1, 2, 3, 4, or 5)
+    // Current stage (1-5), derived from health — not set manually
     private var currentStage = 1
-    private val MIN_STAGE = 1
-    private val MAX_STAGE = 5
-    
+
     // Cat code derived from 4 independent characteristics
     private var catCode = "0000"
-    
-    // Current health (0 to 100)
-    private var currentHealth = 100
+
+    // Current health (0 to 80)
+    private var currentHealth = UserPreferences.INITIAL_HEALTH
     private val MIN_HEALTH = 0
-    private val MAX_HEALTH = 100
+    private val MAX_HEALTH = UserPreferences.MAX_HEALTH
     
     // Update intervals
     private val STEP_UPDATE_INTERVAL_MS = 2000L // Update step count every 2 seconds
@@ -67,21 +63,15 @@ class UserFragment : Fragment() {
         // Get MainActivity to access shared objects
         val mainActivity = activity as? MainActivity
         if (mainActivity != null) {
-            // Load saved stage, health, and cat code
-            currentStage = mainActivity.userPreferences.getCurrentStage()
             currentHealth = mainActivity.userPreferences.getCurrentHealth()
             catCode = mainActivity.userPreferences.getCatCode()
+            currentStage = mainActivity.userPreferences.healthToStage(currentHealth)
         }
-        
-        // Set up button listeners
-        prevStageButton.setOnClickListener {
-            changeStage(-1, mainActivity)
-        }
-        
-        nextStageButton.setOnClickListener {
-            changeStage(1, mainActivity)
-        }
-        
+
+        // Stage is derived from health — hide manual stage buttons
+        prevStageButton.visibility = View.GONE
+        nextStageButton.visibility = View.GONE
+
         // Update UI with loaded values
         updateStageImage()
         updateHealthBar()
@@ -97,14 +87,17 @@ class UserFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val mainActivity = activity as? MainActivity
-        // Reload cat code in case it was changed in CustomizationFragment
+        // Reload cat code and health in case they changed
         mainActivity?.let {
             catCode = it.userPreferences.getCatCode()
+            currentHealth = it.userPreferences.getCurrentHealth()
+            currentStage = it.userPreferences.healthToStage(currentHealth)
         }
-        updateBackground() // Update background in case time changed
+        updateBackground()
         refreshStepCount(mainActivity)
         startStepCountUpdates(mainActivity)
-        updateStageImage() // Update stage image with current skin
+        updateStageImage()
+        updateHealthBar()
     }
     
     override fun onPause() {
@@ -136,19 +129,6 @@ class UserFragment : Fragment() {
         stepUpdateRunnable?.let { mainHandler.postDelayed(it, STEP_UPDATE_INTERVAL_MS) }
     }
     
-    private fun changeStage(delta: Int, mainActivity: MainActivity?) {
-        val newStage = currentStage + delta
-        
-        if (newStage < MIN_STAGE || newStage > MAX_STAGE) {
-            return
-        }
-        
-        currentStage = newStage
-        mainActivity?.userPreferences?.setCurrentStage(currentStage)
-        updateStageImage()
-        android.util.Log.d("UserFragment", "Changed stage to $currentStage")
-    }
-    
     private fun updateStageImage() {
         val mainActivity = activity as? MainActivity
         mainActivity?.let {
@@ -159,35 +139,21 @@ class UserFragment : Fragment() {
                            else "cat_${catCode}_stage_${currentStage}"
         val resId = resources.getIdentifier(drawableName, "drawable", requireContext().packageName)
         stageImageView.setImageResource(if (resId != 0) resId else R.drawable.cat_stage_1)
-
-        prevStageButton.isEnabled = currentStage > MIN_STAGE
-        nextStageButton.isEnabled = currentStage < MAX_STAGE
-    }
-    
-    private fun changeHealth(delta: Int, mainActivity: MainActivity?) {
-        val newHealth = currentHealth + delta
-        
-        if (newHealth < MIN_HEALTH || newHealth > MAX_HEALTH) {
-            return
-        }
-        
-        currentHealth = newHealth
-        mainActivity?.userPreferences?.setCurrentHealth(currentHealth)
-        updateHealthBar()
-        android.util.Log.d("UserFragment", "Changed health to $currentHealth")
     }
     
     private fun updateHealthBar() {
+        healthProgressBar.max = MAX_HEALTH
         healthProgressBar.progress = currentHealth
         healthValueText.text = currentHealth.toString()
-        
+
+        // Colors aligned with stage ranges (max=80)
         val colorResId = when {
-            currentHealth > 70 -> 0xFF4CAF50.toInt()  // Green
-            currentHealth >= 50 -> 0xFFFFEB3B.toInt()  // Yellow
-            currentHealth >= 25 -> 0xFFFF9800.toInt()  // Orange
-            else -> 0xFFF44336.toInt()  // Red
+            currentHealth > 60 -> 0xFF4CAF50.toInt()  // Green  (stage 5: 61-80)
+            currentHealth > 40 -> 0xFFFFEB3B.toInt()  // Yellow (stage 4: 41-60)
+            currentHealth > 20 -> 0xFFFF9800.toInt()  // Orange (stage 3: 21-40)
+            else               -> 0xFFF44336.toInt()  // Red    (stages 1-2: 0-20)
         }
-        
+
         healthProgressBar.progressTintList = ColorStateList.valueOf(colorResId)
     }
     

@@ -65,10 +65,10 @@ class CustomizationFragment : Fragment() {
             }
         }
 
-        arrowPiel.setOnClickListener    { piel    = 1 - piel;    updateUI() }
-        arrowManchas.setOnClickListener { manchas = 1 - manchas; updateUI() }
-        arrowOjos.setOnClickListener    { ojos    = 1 - ojos;    updateUI() }
-        arrowOrejas.setOnClickListener  { orejas  = 1 - orejas;  updateUI() }
+        arrowPiel.setOnClickListener    { piel    = (piel    + 1) % 4; updateUI() }
+        arrowManchas.setOnClickListener { manchas = (manchas + 1) % 4; updateUI() }
+        arrowOjos.setOnClickListener    { ojos    = (ojos    + 1) % 3; updateUI() }
+        arrowOrejas.setOnClickListener  { orejas  = (orejas  + 1) % 2; updateUI() }
 
         selectButton.setOnClickListener { saveSelectedSkin(mainActivity) }
         myDataButton.setOnClickListener { navigateToUserData() }
@@ -146,6 +146,6 @@ class CustomizationFragment : Fragment() {
 
     private fun navigateToUserData() {
         val mainActivity = activity as? MainActivity
-        mainActivity?.viewPager?.currentItem = 4
+        mainActivity?.viewPager?.currentItem = 3
     }
 }

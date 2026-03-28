@@ -74,28 +74,26 @@ class MainActivity : AppCompatActivity() {
                 0 -> "My pet"
                 1 -> "Leaderboard"
                 2 -> {
-                    // Show "My data" if setup not complete, otherwise "Customization"
                     if (userPreferences.isInitialSetupComplete()) {
                         "My data"
                     } else {
                         "Customization"
                     }
                 }
-                3 -> "Dev"
-                4 -> ""  // Hidden "My data" tab (edit form)
+                3 -> ""  // Hidden user data form tab
                 else -> ""
             }
-            // Ocultar la pestaña de "Mis datos" (posición 4 - edición)
-            if (position == 4) {
+            // Ocultar la pestaña de edición de datos (posición 3)
+            if (position == 3) {
                 tab.view.visibility = android.view.View.GONE
             }
         }
         tabLayoutMediator?.attach()
-        
-        // Si es la primera vez, navegar a Personalización
+
+        // Si es la primera vez, navegar al formulario de datos de usuario
         if (!userPreferences.isInitialSetupComplete()) {
             viewPager.post {
-                viewPager.currentItem = 4  // User data form tab (fill info first)
+                viewPager.currentItem = 3  // User data form tab (fill info first)
             }
         }
         

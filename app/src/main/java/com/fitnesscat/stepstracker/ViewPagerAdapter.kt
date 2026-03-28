@@ -8,8 +8,8 @@ class ViewPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapte
     
     private val userPreferences: UserPreferences = UserPreferences(fragmentActivity)
     
-    override fun getItemCount(): Int = 5
-    
+    override fun getItemCount(): Int = 4
+
     override fun getItemId(position: Int): Long {
         // Use different IDs for position 2 depending on setup state
         // This forces recreation of the fragment when setup state changes
@@ -23,7 +23,7 @@ class ViewPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapte
             super.getItemId(position)
         }
     }
-    
+
     override fun createFragment(position: Int): Fragment {
         return when (position) {
             0 -> UserFragment()
@@ -36,8 +36,7 @@ class ViewPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapte
                     CustomizationFragment()
                 }
             }
-            3 -> DevFragment()
-            4 -> UserDataFragment()
+            3 -> UserDataFragment()
             else -> UserFragment()
         }
     }

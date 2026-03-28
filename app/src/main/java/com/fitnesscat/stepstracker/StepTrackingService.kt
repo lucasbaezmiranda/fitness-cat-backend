@@ -270,18 +270,11 @@ class StepTrackingService : Service(), SensorEventListener {
             android.util.Log.d("StepTrackingService", "✓ Sensor event received: currentValue=$currentSensorValue, lastValue=$lastSensorValue, totalSteps=$totalStepCount")
             AppLogger.log("StepTrackingService", "✓ Sensor event! current=$currentSensorValue, last=$lastSensorValue, total=$totalStepCount")
             
-            // First reading - just store baseline
+            // First reading - just store baseline (do NOT count steps since boot as ours)
             if (lastSensorValue == 0f) {
                 android.util.Log.d("StepTrackingService", "First sensor reading - storing baseline: $currentSensorValue")
                 lastSensorValue = currentSensorValue
                 userPreferences.setLastSensorValue(lastSensorValue)
-                // Also update totalStepCount to show current sensor value if it's the first time
-                // This helps if the user has already taken steps before installing the app
-                if (currentSensorValue > 0) {
-                    totalStepCount = currentSensorValue.toInt()
-                    userPreferences.setTotalStepCount(totalStepCount)
-                    android.util.Log.d("StepTrackingService", "Initialized totalStepCount with sensor value: $totalStepCount")
-                }
                 updateNotification()
                 return
             }
